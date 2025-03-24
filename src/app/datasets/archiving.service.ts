@@ -7,6 +7,7 @@ import {
   selectCurrentUser,
   selectTapeCopies,
   selectProfile,
+  selectScicatToken,
 } from "state-management/selectors/user.selectors";
 import { RetrieveDestinations } from "app-config.service";
 import {
@@ -17,20 +18,24 @@ import {
 @Injectable()
 export class ArchivingService {
   private currentUser$ = this.store.select(selectCurrentUser);
+  private scicatToken$ = this.store.select(selectScicatToken);
   private tapeCopies$ = this.store.select(selectTapeCopies);
 
   constructor(private store: Store) {}
 
   private createJob(
     user: ReturnedUserDto,
+    scicatToken: string,
     datasets: OutputDatasetObsoleteDto[],
     archive: boolean,
     destinationPath?: Record<string, string>,
     // Do not specify tape copies here
   ) {
     const extra = archive ? {} : destinationPath;
+
     const jobParams = {
       username: user.username,
+      userToken: scicatToken,
       ...extra,
     };
 
@@ -57,9 +62,9 @@ export class ArchivingService {
     archive: boolean,
     destPath?: Record<string, string>,
   ): Observable<void> {
-    return combineLatest([this.currentUser$, this.tapeCopies$]).pipe(
+    return combineLatest([this.currentUser$, this.scicatToken$, this.tapeCopies$]).pipe(
       first(),
-      map(([user, tapeCopies]) => {
+      map(([user, token, tapeCopies]) => {
         if (user) {
           const email = user.email;
           if (email == null || email.length === 0) {
@@ -72,7 +77,7 @@ export class ArchivingService {
             throw new Error("No datasets selected");
           }
 
-          const job = this.createJob(user, datasets, archive, destPath);
+          const job = this.createJob(user, token, datasets, archive, destPath);
 
           this.store.dispatch(submitJobAction({ job: job as any }));
         }
