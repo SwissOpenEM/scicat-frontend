@@ -88,6 +88,7 @@ import { JsonHeadPipe } from "shared/pipes/json-head.pipe";
 import { ThumbnailPipe } from "shared/pipes/thumbnail.pipe";
 import { MatExpansionModule } from "@angular/material/expansion";
 import { TitleCasePipe } from "shared/pipes/title-case.pipe";
+import { IngestorModule } from "ingestor/ingestor.module";
 
 @NgModule({
   imports: [
@@ -95,6 +96,7 @@ import { TitleCasePipe } from "shared/pipes/title-case.pipe";
     EffectsModule.forFeature([DatasetEffects]),
     FlexLayoutModule,
     FormsModule,
+    IngestorModule,
     LinkyModule,
     MatAutocompleteModule,
     MatButtonModule,
