@@ -49,7 +49,6 @@ import { DatasetDetailComponent } from "./dataset-detail/dataset-detail/dataset-
 import { DatasetTableComponent } from "./dataset-table/dataset-table.component";
 import { DatasetsFilterComponent } from "./datasets-filter/datasets-filter.component";
 import { AddDatasetDialogComponent } from "./add-dataset-dialog/add-dataset-dialog.component";
-import { DatasetTableSettingsComponent } from "./dataset-table-settings/dataset-table-settings.component";
 import { DatasetTableActionsComponent } from "./dataset-table-actions/dataset-table-actions.component";
 import { DatasetLifecycleComponent } from "./dataset-lifecycle/dataset-lifecycle.component";
 import { SampleEditComponent } from "./sample-edit/sample-edit.component";
@@ -85,6 +84,11 @@ import { userReducer } from "state-management/reducers/user.reducer";
 import { MatSnackBarModule } from "@angular/material/snack-bar";
 import { DatasetDetailDynamicComponent } from "./dataset-detail/dataset-detail-dynamic/dataset-detail-dynamic.component";
 import { DatasetDetailWrapperComponent } from "./dataset-detail/dataset-detail-wrapper.component";
+import { JsonHeadPipe } from "shared/pipes/json-head.pipe";
+import { ThumbnailPipe } from "shared/pipes/thumbnail.pipe";
+import { MatExpansionModule } from "@angular/material/expansion";
+import { TitleCasePipe } from "shared/pipes/title-case.pipe";
+
 @NgModule({
   imports: [
     CommonModule,
@@ -146,6 +150,7 @@ import { DatasetDetailWrapperComponent } from "./dataset-detail/dataset-detail-w
     CdkDrag,
     CdkDragHandle,
     FiltersModule,
+    MatExpansionModule,
   ],
   declarations: [
     BatchViewComponent,
@@ -162,7 +167,6 @@ import { DatasetDetailWrapperComponent } from "./dataset-detail/dataset-detail-w
     ReduceComponent,
     DatasetDetailsDashboardComponent,
     AddDatasetDialogComponent,
-    DatasetTableSettingsComponent,
     DatasetTableActionsComponent,
     DatasetLifecycleComponent,
     SampleEditComponent,
@@ -178,9 +182,12 @@ import { DatasetDetailWrapperComponent } from "./dataset-detail/dataset-detail-w
   providers: [
     ArchivingService,
     AsyncPipe,
+    JsonHeadPipe,
+    ThumbnailPipe,
     ADAuthService,
     SharedScicatFrontendModule,
     FileSizePipe,
+    TitleCasePipe,
   ],
   exports: [
     DashboardComponent,

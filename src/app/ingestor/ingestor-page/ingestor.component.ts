@@ -20,20 +20,8 @@ export class IngestorComponent implements OnInit {
   constructor(public appConfigService: AppConfigService) {}
 
   ngOnInit() {
-    // Render the ingestor component based on the mode
-    const mode = this.appConfig.ingestorMode;
-
-    if (mode === undefined || mode === null || mode === "default") {
-      this.ingestorMode = "transfer";
-    } else if (mode === "creation") {
-      this.ingestorMode = "creation";
-    } else if (mode === "transfer") {
-      this.ingestorMode = "transfer";
-    } else {
-      console.error(
-        `Unknown ingestor mode: ${mode} - Falling back to transfer mode.`,
-      );
-      this.ingestorMode = "transfer"; // Fallback to transfer mode
+    if (this.appConfig.addDatasetEnabled) {
+      this.ingestorMode = "creation"; 
     }
   }
 }
