@@ -1,11 +1,7 @@
-import { angularMaterialRenderers } from "@jsonforms/angular-material";
-import { customRenderers } from "./customRenderer/custom-renderers";
 import { JsonSchema } from "@jsonforms/core";
+import { configuredRenderer } from "shared/modules/jsonforms-custom-renderers/ingestor-renderer/ingestor-renderer-helper";
 
-export const configuredRenderer = [
-  ...customRenderers,
-  ...angularMaterialRenderers,
-];
+export { configuredRenderer };
 
 export class IngestorMetadataEditorHelper {
   // Resolve all $ref in a schema

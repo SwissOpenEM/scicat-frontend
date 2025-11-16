@@ -9,7 +9,8 @@ export const isSIFieldTester = rankWith(
 
 @Component({
   selector: "si-field-hider",
-  template: "", // Empty template - renders nothing
+  template: "",
+  standalone: false,
 })
 export class SIFieldHiderRendererComponent extends JsonFormsControl {
   constructor(jsonformsService: JsonFormsAngularService) {

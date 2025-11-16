@@ -28,6 +28,7 @@
         (textChange)="setFilter(filter.key, $event)"
         (dateRangeChange)="setDateFilter(filter.key, $event)"
         (selectionChange)="selectionChange($event)"
+        (checkBoxChange)="setFilter(filter.key, $event)"
         (numericRangeChange)="numericRangeChange(filter.key, $event)"
       ></shared-filter>
     </ng-container>
@@ -284,6 +285,7 @@
         mat-raised-button
         color="primary"
         class="datasets-filters-search-button"
+        data-cy="filter-search-button"
         (click)="applyFilters()"
       >
         <mat-icon>search</mat-icon>

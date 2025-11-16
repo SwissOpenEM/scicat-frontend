@@ -35,6 +35,7 @@ import * as fromActions from "state-management/actions/ingestor.actions";
 import { selectUserSettingsPageViewModel } from "state-management/selectors/user.selectors";
 import { Subscription } from "rxjs";
 import { ReturnedUserDto } from "@scicatproject/scicat-sdk-ts-angular";
+import * as defaultMetadataSchema from "shared/modules/scientific-metadata/defaultMetadata.json";
 
 @Component({
   selector: "ingestor-new-transfer-dialog-page",
@@ -85,6 +86,7 @@ export class IngestorNewTransferDialogPageComponent
   isCardContentVisible = {
     scicat: true,
   };
+  experimentalBannerDismissed = false;
 
   constructor(
     private store: Store,
@@ -131,7 +133,6 @@ export class IngestorNewTransferDialogPageComponent
               this.subscriptions.push(
                 this.facilityBackend$.subscribe((ingestorEndpoint) => {
                   if (ingestorEndpoint) {
-                    console.log("Ingestor endpoint changed:", ingestorEndpoint);
                     this.facilityInfo = ingestorEndpoint;
                   }
                 }),
@@ -172,6 +173,10 @@ export class IngestorNewTransferDialogPageComponent
     }
   }
 
+  dismissExperimentalBanner(): void {
+    this.experimentalBannerDismissed = true;
+  }
+
   ngOnDestroy(): void {
     this.subscriptions.forEach((subscription) => {
       subscription.unsubscribe();
@@ -180,6 +185,13 @@ export class IngestorNewTransferDialogPageComponent
 
   set selectedMethod(value: ExtractionMethod) {
     this.createNewTransferData.selectedMethod = value;
+
+    // Set the scientificMetadataSchema in scicatHeader when a method is selected
+    if (value && value.url) {
+      this.createNewTransferData.scicatHeader["scientificMetadataSchema"] =
+        value.url;
+    }
+
     this.validateNextButton();
   }
 
@@ -219,7 +231,7 @@ export class IngestorNewTransferDialogPageComponent
     this.createNewTransferData.scicatHeader["license"] = "MIT License";
     this.createNewTransferData.scicatHeader["type"] = "raw";
     this.createNewTransferData.scicatHeader["dataFormat"] = "root";
-    this.createNewTransferData.scicatHeader["owner"] = "User"; 
+    this.createNewTransferData.scicatHeader["owner"] = "User";
 
     this.createNewTransferData.scicatHeader["principalInvestigator"] =
       this.userProfile.username;
@@ -280,7 +292,14 @@ export class IngestorNewTransferDialogPageComponent
   }
 
   onDataChangeUserScicatHeader(event: any) {
+    // Preserve scientificMetadataSchema if it exists
+    const existingSchema =
+      this.createNewTransferData.scicatHeader["scientificMetadataSchema"];
     this.createNewTransferData.scicatHeader = event;
+    if (existingSchema) {
+      this.createNewTransferData.scicatHeader["scientificMetadataSchema"] =
+        existingSchema;
+    }
   }
 
   toggleCardContent(card: string): void {
@@ -334,7 +353,10 @@ export class IngestorNewTransferDialogPageComponent
   }
 
   onSchemaUrlChange(url: string): void {
+    // Store the URL
     this.createNewTransferData.schemaUrl = url;
+
+    // Update the store
     this.store.dispatch(
       fromActions.updateIngestionObject({
         ingestionObject: this.createNewTransferData,
@@ -343,44 +365,123 @@ export class IngestorNewTransferDialogPageComponent
   }
 
   async onUploadSchema(): Promise<void> {
-    if (!this.createNewTransferData.schemaUrl) {
-      alert("Please enter a schema URL.");
+    // Don't validate if URL is empty (user may have just cleared it)
+    if (
+      !this.createNewTransferData.schemaUrl ||
+      this.createNewTransferData.schemaUrl.trim() === ""
+    ) {
       return;
     }
-    console.log(
-      "Fetching schema from URL:",
-      this.createNewTransferData.schemaUrl,
-    );
-    let content: string;
-    let parsedJson: any;
 
     try {
+      // Fetch the schema from the URL
       const response = await fetch(this.createNewTransferData.schemaUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch schema: ${response.statusText}`);
       }
-      content = await response.text();
-      try {
-        parsedJson = JSON.parse(content);
-      } catch (e) {
-        alert("The provided URL does not contain valid JSON.");
-        return;
-      }
+
+      const content = await response.text();
+
+      // Validate that it's valid JSON
+      JSON.parse(content);
+
+      // Store the schema content
+      this.createNewTransferData.selectedSchemaFileContent = content;
+      this.createNewTransferData.scicatHeader["scientificMetadataSchema"] =
+        this.createNewTransferData.schemaUrl;
+      // Update the store
+      this.store.dispatch(
+        fromActions.updateIngestionObject({
+          ingestionObject: this.createNewTransferData,
+        }),
+      );
+
+      this.validateNextButton();
     } catch (error: any) {
-      alert(`Error fetching schema: ${error.message}`);
-      return;
+      // Clear both URL and content on error
+      this.createNewTransferData.schemaUrl = "";
+      this.createNewTransferData.selectedSchemaFileContent = "";
+
+      // Update the store with cleared values
+      this.store.dispatch(
+        fromActions.updateIngestionObject({
+          ingestionObject: this.createNewTransferData,
+        }),
+      );
+
+      // Show appropriate error message
+      if (error instanceof SyntaxError) {
+        alert("The provided URL does not contain valid JSON.");
+      } else {
+        alert(`Error fetching schema: ${error.message}.`);
+      }
+      console.error("Error loading schema from URL:", error);
+
+      this.validateNextButton();
     }
+  }
 
-    this.createNewTransferData.selectedSchemaFileContent = content;
+  onUploadSchemaFile(): void {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.onchange = (event: Event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target?.result as string;
 
-    // Update the store with both the URL and content
-    this.createNewTransferData.selectedSchemaFileContent = content;
-    this.store.dispatch(
-      fromActions.updateIngestionObject({
-        ingestionObject: this.createNewTransferData,
-      }),
-    );
+          try {
+            // Validate that it's valid JSON
+            JSON.parse(content);
 
-    this.validateNextButton();
+            this.createNewTransferData.selectedSchemaFileContent = content;
+
+            // Clear the URL since we're loading from file
+            this.createNewTransferData.schemaUrl = "";
+
+            // Update the store
+            this.store.dispatch(
+              fromActions.updateIngestionObject({
+                ingestionObject: this.createNewTransferData,
+              }),
+            );
+
+            this.validateNextButton();
+          } catch (error) {
+            alert("The selected file does not contain valid JSON.");
+            console.error("Error parsing JSON file:", error);
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  }
+
+  onLoadDefaultSchema(): void {
+    try {
+      // Convert the imported schema to a string
+      const content = JSON.stringify(defaultMetadataSchema, null, 2);
+
+      // Store the schema content
+      this.createNewTransferData.selectedSchemaFileContent = content;
+
+      // Clear the URL since we're loading from default schema
+      this.createNewTransferData.schemaUrl = "";
+
+      this.store.dispatch(
+        fromActions.updateIngestionObject({
+          ingestionObject: this.createNewTransferData,
+        }),
+      );
+
+      this.validateNextButton();
+    } catch (error) {
+      alert("Error loading default schema.");
+      console.error("Error loading default schema:", error);
+    }
   }
 }

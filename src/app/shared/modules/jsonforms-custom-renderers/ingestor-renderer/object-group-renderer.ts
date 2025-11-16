@@ -12,51 +12,19 @@ import {
   findUISchema,
   Generate,
   GroupLayout,
+  RankedTester,
   setReadonly,
   UISchemaElement,
 } from "@jsonforms/core";
-import {
-  configuredRenderer,
-  convertJSONFormsErrorToString,
-} from "../ingestor-metadata-editor-helper";
+import { ObjectControlRendererTester } from "@jsonforms/angular-material";
+import { convertJSONFormsErrorToString } from "./ingestor-renderer-helper";
 import { cloneDeep, startCase } from "lodash-es";
 import isEmpty from "lodash/isEmpty";
 
 @Component({
   selector: "app-object-group-renderer",
-  styleUrls: ["../ingestor-metadata-editor.component.scss"],
-  template: `
-    <mat-card class="anyof-group">
-      <mat-card-title
-        >{{ objectTitle }}
-        <span class="spacer"></span>
-        <mat-icon
-          *ngIf="this.error !== null && this.error !== ''"
-          color="warn"
-          matBadgeColor="warn"
-          matTooltip="{{ this.error }}"
-          matTooltipClass="error-message-tooltip"
-        >
-          error_outline
-        </mat-icon>
-      </mat-card-title>
-      <mat-card-content>
-        <div *ngIf="errorRecursiveStructure === false">
-          <jsonforms-outlet
-            [uischema]="detailUiSchema"
-            [schema]="scopedSchema"
-            [path]="propsPath"
-          >
-          </jsonforms-outlet>
-        </div>
-
-        <p *ngIf="errorRecursiveStructure">
-          <mat-icon color="warn">error_outline</mat-icon>
-          Recursive data structure in selected JSON Schema detected.
-        </p>
-      </mat-card-content>
-    </mat-card>
-  `,
+  styleUrls: ["./ingestor-renderer.component.scss"],
+  templateUrl: "./object-group-renderer.html",
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -64,7 +32,6 @@ export class CustomObjectControlRendererComponent extends JsonFormsControlWithDe
   rendererService: JsonFormsAngularService;
   detailUiSchema: UISchemaElement;
 
-  defaultRenderer = configuredRenderer;
   objectTitle: string;
   errorRecursiveStructure: boolean;
 
@@ -147,3 +114,6 @@ export class CustomObjectControlRendererComponent extends JsonFormsControlWithDe
     return false;
   }
 }
+
+export const objectGroupRendererTester: RankedTester =
+  ObjectControlRendererTester;

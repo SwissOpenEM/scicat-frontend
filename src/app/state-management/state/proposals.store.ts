@@ -5,12 +5,13 @@ import {
 import { TableField } from "shared/modules/dynamic-material-table/models/table-field.model";
 
 export interface DateRange {
-  begin: string;
-  end: string;
+  begin?: string;
+  end?: string;
 }
 
 export interface FacetCount {
-  _id?: string;
+  _id: string;
+  label?: string;
   count: number;
 }
 export interface FacetCounts {
@@ -18,7 +19,22 @@ export interface FacetCounts {
 }
 
 export interface ProposalFilters {
-  fields: Record<string, string | DateRange>;
+  fields: {
+    proposalId?: string[];
+    title?: string[];
+    abstract?: string[];
+    startTime?: DateRange | null;
+    endTime?: DateRange | null;
+    instrumentIds?: string[];
+    pi_firstname?: string[];
+    pi_lastname?: string[];
+    pi_email?: string[];
+    ownerGroup?: string[];
+    accessGroups?: string[];
+    isPublished?: boolean | null;
+    type?: string[];
+    text?: string;
+  };
   skip: number;
   limit: number;
   sortField: string;
@@ -71,7 +87,11 @@ export const initialProposalsState: ProposalsState = {
   hasPrefilledFilters: false,
 
   proposalFilters: {
-    fields: {},
+    fields: {
+      startTime: null,
+      instrumentIds: [],
+      pi_lastname: [],
+    },
     skip: 0,
     limit: 25,
     sortField: "createdAt:desc",

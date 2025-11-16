@@ -32,7 +32,9 @@ export class IngestorCreationComponent {
     let dialogRef = null;
     dialogRef = this.dialog.open(IngestorCreationDialogBaseComponent, {
       disableClose: true,
-      width: "75vw",
+      width: "auto",
+      minWidth: "40%",
+      maxWidth: "1400px",
     });
 
     // Error if the dialog reference is not set

@@ -1,6 +1,7 @@
 {
   "accessTokenPrefix": "Bearer ",
   "addDatasetEnabled": true,
+  "allowConfigOverrides": true,
   "archiveWorkflowEnabled": false,
   "datasetReduceEnabled": true,
   "datasetJsonScientificMetadata": true,
@@ -28,7 +29,7 @@
   "jsonMetadataEnabled": true,
   "jupyterHubUrl": "https://jupyterhub.esss.lu.se/",
   "landingPage": "doi.ess.eu/detail/",
-  "lbBaseURL": "http://backend.localhost",
+  "lbBaseURL": "http://localhost:3000",
   "ingestorComponent": {
     "ingestorEnabled": true,
     "ingestorAutodiscoveryOptions": [

@@ -19,26 +19,9 @@ import { LayoutRenderer } from "@jsonforms/angular-material";
 
 @Component({
   selector: "QuantityValueLayoutRendererComponent",
-  template: `
-    <div
-      [ngStyle]="{ display: hidden ? 'none' : '' }"
-      class="quantity-value-box"
-    >
-      <div
-        class="quantity-value-element"
-        *ngFor="
-          let props of uischema
-            | customLayoutChildrenRenderProps: schema : path;
-          trackBy: trackElement
-        "
-      >
-        <jsonforms-outlet [renderProps]="props"></jsonforms-outlet>
-      </div>
-    </div>
-  `,
-  styleUrls: ["../ingestor-metadata-editor.component.scss"],
+  templateUrl: "./quantity-value-layout-renderer.html",
+  styleUrls: ["./ingestor-renderer.component.scss"],
   standalone: false,
-
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuantityValueLayoutRendererComponent extends LayoutRenderer<QuantityValueLayout> {

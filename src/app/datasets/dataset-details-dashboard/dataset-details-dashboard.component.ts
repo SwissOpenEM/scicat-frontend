@@ -125,14 +125,16 @@ export class DatasetDetailsDashboardComponent
 
   ngOnInit() {
     this.subscriptions.push(
-      this.route.params.pipe(pluck("id")).subscribe((id: string) => {
-        if (id) {
-          this.resetTabs();
-          // Fetch dataset details
-          this.store.dispatch(fetchDatasetAction({ pid: id }));
-          this.fetchDataActions[TAB.details].loaded = true;
-        }
-      }),
+      this.route.params
+        .pipe(map((params) => params["id"]))
+        .subscribe((id: string) => {
+          if (id) {
+            this.resetTabs();
+            // Fetch dataset details
+            this.store.dispatch(fetchDatasetAction({ pid: id }));
+            this.fetchDataActions[TAB.details].loaded = true;
+          }
+        }),
     );
 
     const datasetSub = this.dataset$.subscribe((dataset) => {
@@ -142,88 +144,90 @@ export class DatasetDetailsDashboardComponent
         (!this.dataset || (this.dataset && dataset.pid != this.dataset.pid))
       ) {
         this.dataset = dataset;
-        combineLatest([this.accessGroups$, this.isAdmin$, this.loggedIn$])
-          .subscribe(([groups, isAdmin, isLoggedIn]) => {
-            const isInOwnerGroup =
-              groups.indexOf(this.dataset.ownerGroup) !== -1 || isAdmin;
-            const isPublished = this.dataset.isPublished;
-            const hasAccessToLogbook =
-              isInOwnerGroup ||
-              this.dataset.accessGroups.some((g) => groups.includes(g));
+        combineLatest([
+          this.accessGroups$,
+          this.isAdmin$,
+          this.loggedIn$,
+        ]).subscribe(([groups, isAdmin, isLoggedIn]) => {
+          const isInOwnerGroup =
+            groups.indexOf(this.dataset.ownerGroup) !== -1 || isAdmin;
+          const isPublished = this.dataset.isPublished;
+          const hasAccessToLogbook =
+            isInOwnerGroup ||
+            this.dataset.accessGroups.some((g) => groups.includes(g));
             const hasOpenEMKeyword = this.dataset.keywords.some(
               (k) => k.toLowerCase() === "openem",
             );
-            this.navLinks = [
-              {
-                location: "./",
-                label: TAB.details,
-                icon: "menu",
-                enabled: true,
-              },
-              {
-                location: "./jsonScientificMetadata",
-                label: TAB.jsonScientificMetadata,
-                icon: "data_object",
-                enabled:
-                  this.appConfig.datasetJsonScientificMetadata && isLoggedIn,
-              },
-              {
-                location: "./datafiles",
-                label: TAB.datafiles,
-                icon: "cloud_download",
-                enabled: true,
-              },
-              {
-                location: "./relatedDatasets",
-                label: TAB.relatedDatasets,
-                icon: "folder",
-                enabled: true,
-              },
-              {
-                location: "./reduce",
-                label: TAB.reduce,
-                icon: "tune",
-                enabled:
-                  this.appConfig.datasetReduceEnabled &&
-                  isLoggedIn &&
-                  isInOwnerGroup,
-              },
-              {
-                location: "./logbook",
-                label: TAB.logbook,
-                icon: "book",
-                enabled:
-                  this.appConfig.logbookEnabled &&
-                  isLoggedIn &&
-                  hasAccessToLogbook,
-              },
-              {
-                location: "./attachments",
-                label: TAB.attachments,
-                icon: "insert_photo",
-                enabled: isInOwnerGroup || isPublished,
-              },
-              {
-                location: "./lifecycle",
-                label: TAB.lifecycle,
-                icon: "loop",
-                enabled: true,
-              },
-              {
-                location: "./admin",
-                label: TAB.admin,
-                icon: "settings",
-                enabled: isLoggedIn && isAdmin,
-              },
+          this.navLinks = [
+            {
+              location: "./",
+              label: TAB.details,
+              icon: "menu",
+              enabled: true,
+            },
+            {
+              location: "./jsonScientificMetadata",
+              label: TAB.jsonScientificMetadata,
+              icon: "data_object",
+              enabled:
+                this.appConfig.datasetJsonScientificMetadata && isLoggedIn,
+            },
+            {
+              location: "./datafiles",
+              label: TAB.datafiles,
+              icon: "cloud_download",
+              enabled: true,
+            },
+            {
+              location: "./relatedDatasets",
+              label: TAB.relatedDatasets,
+              icon: "folder",
+              enabled: true,
+            },
+            {
+              location: "./reduce",
+              label: TAB.reduce,
+              icon: "tune",
+              enabled:
+                this.appConfig.datasetReduceEnabled &&
+                isLoggedIn &&
+                isInOwnerGroup,
+            },
+            {
+              location: "./logbook",
+              label: TAB.logbook,
+              icon: "book",
+              enabled:
+                this.appConfig.logbookEnabled &&
+                isLoggedIn &&
+                hasAccessToLogbook,
+            },
+            {
+              location: "./attachments",
+              label: TAB.attachments,
+              icon: "insert_photo",
+              enabled: isInOwnerGroup || isPublished,
+            },
+            {
+              location: "./lifecycle",
+              label: TAB.lifecycle,
+              icon: "loop",
+              enabled: true,
+            },
+            {
+              location: "./admin",
+              label: TAB.admin,
+              icon: "settings",
+              enabled: isLoggedIn && isAdmin,
+            },
               {
                 location: "./depositor",
                 label: TAB.depositor,
                 icon: "file_upload",
                 enabled: isLoggedIn && hasOpenEMKeyword,
               },
-            ];
-          })
-          .unsubscribe();
+          ];
+        });
         // fetch data for the selected tab
         this.route.firstChild?.url
           .subscribe((childUrl) => {
