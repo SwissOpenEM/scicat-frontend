@@ -38,6 +38,13 @@ import {
 import { Depositor } from "shared/sdk/apis/depositor.service";
 import { Observable, Subscription } from "rxjs";
 import { isNumeric } from "mathjs";
+import {
+  selectDepositionStatus,
+  selectFileUploadProgress,
+  selectDeposition,
+} from "state-management/selectors/depositor.selectors";
+import { UploadStatus, FileUploadProgress } from "state-management/state/depositor.store";
+import { resetUploadProgress } from "state-management/actions/depositor.actions";
 
 @Component({
   selector: "app-onedep",
@@ -72,6 +79,11 @@ export class OneDepComponent implements OnChanges, OnDestroy {
   pid$: Observable<object>;
   @ViewChild("fileInput") fileInput: ElementRef<HTMLInputElement> | undefined;
 
+  // Upload progress observables
+  depositionStatus$: Observable<UploadStatus>;
+  fileUploadProgress$: Observable<FileUploadProgress[]>;
+  deposition$: Observable<any>;
+
   constructor(
     public appConfigService: AppConfigService,
     private store: Store,
@@ -104,6 +116,11 @@ export class OneDepComponent implements OnChanges, OnDestroy {
       emdbId: new FormControl(""),
       files: this.fb.array([]),
     });
+
+    // Initialize upload progress observables
+    this.depositionStatus$ = this.store.select(selectDepositionStatus);
+    this.fileUploadProgress$ = this.store.select(selectFileUploadProgress);
+    this.deposition$ = this.store.select(selectDeposition);
   }
 
   // ngOnInit() {
@@ -661,17 +678,16 @@ export class OneDepComponent implements OnChanges, OnDestroy {
         }
         return { form: formDataFile, fileType: fT.value.emName };
       });
-    // if (!metadataAdded) {
-    //   const formDataFile = new FormData();
+    if (!metadataAdded) {
+      const formDataFile = new FormData();
 
-    //   formDataFile.append("jwtToken", this.form.value.jwtToken);
-    //   formDataFile.append(
-    //     "scientificMetadata",
-    //     JSON.stringify(this.form.value.metadata),
-    //   );
-    //   // FIXME: This is a temporary fix, the metadata fileType should be specified as such, once supported by OneDep API
-    //   filesToUpload.push({ form: formDataFile, fileType: EmFile.Coordinates });
-    // }
+      formDataFile.append("jwtToken", this.form.value.jwtToken);
+      formDataFile.append(
+        "scientificMetadata",
+        JSON.stringify(this.form.value.metadata),
+      );
+      filesToUpload.push({ form: formDataFile, fileType: EmFile.Metadata });
+    }
 
     this.store.dispatch(
       fromActions.submitDeposition({

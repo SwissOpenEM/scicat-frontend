@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from "@angular/core";
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from "@angular/core";
 import {
   FormControl,
   FormGroup,
@@ -6,7 +6,6 @@ import {
   Validators,
 } from "@angular/forms";
 import { AppConfigService, AppConfigInterface } from "app-config.service";
-import { ActivatedRoute } from "@angular/router";
 import { JsonSchema } from "@jsonforms/core";
 import { Store } from "@ngrx/store";
 import {
@@ -27,13 +26,10 @@ import { selectEmpiarSchema } from "state-management/selectors/depositor.selecto
 
 import { updatePropertyAction } from "state-management/actions/datasets.actions";
 
-import * as ingestorActions from "state-management/actions/ingestor.actions";
-import { GetExtractorResponse, MethodItem } from "../../shared/sdk/models/ingestor/models"
-
-// import { IngestorMetadataEditorComponent} from "../../ingestor/ingestor-metadata-editor/ingestor-metadata-editor.component"
-
-import { Observable, Subscription, take, find } from "rxjs";
-import { Router } from "@angular/router";
+import { IngestorMetadataEditorHelper } from "../../ingestor/ingestor-metadata-editor/ingestor-metadata-editor-helper";
+import { EmFile } from "./onedep/types/methods.enum";
+import { Subscription } from "rxjs";
+import { Depositor } from "../../shared/sdk/apis/depositor.service";
 
 interface DepositionRepository {
   value: string;
@@ -69,14 +65,25 @@ export class DepositorComponent implements OnInit, OnDestroy {
   empiarSchemaEncoded:string | undefined;
   showMetadataEditor = false;
 
-  metadata: any = {}; 
+  metadata: any = {};
   metadataSchema: JsonSchema = null
+
+  // Metadata validation properties
+  isMetadataOk = false;
+  metadataErrors = "";
+  activeRenderView: string = "all"; // Can be "all" or "requiredOnly"
+
+  // OneDep deposition properties
+  depID: string | null = null;
+  jwtToken: string = "";
 
 
   constructor(
     public appConfigService: AppConfigService,
     private store: Store,
     private fb: FormBuilder,
+    private cdr: ChangeDetectorRef,
+    private depositor: Depositor,
   ) {
     this.config = this.appConfigService.getConfig();
     this.depositionRepository = new FormControl("");
@@ -124,16 +131,49 @@ export class DepositorComponent implements OnInit, OnDestroy {
   onChooseRepo() {
     this.selectedMethod = this.depositionRepository.value;
   }
+ /**
+  * Recursively removes all keys starting with '$' from an object
+  * @param obj - The object to clean
+  * @returns The cleaned object
+  */
+ private removeDollarProperties(obj: any): any {
+   if (!obj || typeof obj !== "object") {
+     return obj;
+   }
+
+   if (Array.isArray(obj)) {
+     return obj.map(item => this.removeDollarProperties(item));
+   }
+
+   const cleaned: any = {};
+   for (const key of Object.keys(obj)) {
+     if (!key.startsWith("$")) {
+       cleaned[key] = this.removeDollarProperties(obj[key]);
+     }
+   }
+   return cleaned;
+ }
+
  async onChangeScientificMetadata() {
   const selectedMethod = "https://raw.githubusercontent.com/osc-em/OSCEM_Schemas/refs/heads/main/project/spa/jsonschema/oscem_schemas_spa.schema.json";
-  
+
   try {
     // Fetch the JSON file
     const response = await fetch(selectedMethod);
     const parsedSchema: JsonSchema = await response.json();
-    this.metadataSchema = parsedSchema;
-    
-    // now it uses metadata structure in place of schema 
+
+    // First, resolve all $refs in the schema
+    const resolvedSchema = IngestorMetadataEditorHelper.resolveRefs(
+      parsedSchema,
+      parsedSchema
+    );
+
+    // Then remove all keys which start with $ at any level. Json Forms can't handle this. When preparing $refs are already resolved.
+    const cleanedSchema = this.removeDollarProperties(resolvedSchema);
+
+    this.metadataSchema = cleanedSchema;
+    console.log(this.metadataSchema)
+    // now it uses metadata structure in place of schema
     this.showMetadataEditor = true;
   } catch (error) {
     console.error('Failed to load schema:', error);
@@ -141,11 +181,21 @@ export class DepositorComponent implements OnInit, OnDestroy {
   }
 }
   onMetadataChange(newData: any) {
-    this.metadata= newData;
+    this.metadata = newData;
   }
 
   onMetadataErrors(errors: any[]) {
     console.warn('Metadata validation errors:', errors);
+
+    const result = IngestorMetadataEditorHelper.processMetadataErrors(
+      errors,
+      this.metadataSchema,
+      this.activeRenderView,
+    );
+
+    this.isMetadataOk = result.isValid;
+    this.metadataErrors = result.errorString;
+    this.cdr.detectChanges();
   }
 
 
@@ -155,6 +205,84 @@ export class DepositorComponent implements OnInit, OnDestroy {
     this.store.dispatch(updatePropertyAction({ pid, property }));
 
     this.showMetadataEditor = false // hide again after the form was submitted
+  }
+
+  /**
+   * Toggle render view between showing all fields or only required fields
+   * @param viewMode - "all" to show all fields, "requiredOnly" to show only required fields
+   */
+  setRenderView(viewMode: "all" | "requiredOnly") {
+    this.activeRenderView = viewMode;
+    // Re-validate errors with new render view
+    if (this.metadataErrors) {
+      this.cdr.detectChanges();
+    }
+  }
+
+  /**
+   * Send metadata to OneDep deposition
+   * Similar to the pattern in onedep.component.ts lines 664-673
+   * Creates FormData with jwtToken and scientificMetadata (no file needed)
+   */
+  sendMetadataToOneDep(depID: string, jwtToken: string) {
+    if (!this.metadata || Object.keys(this.metadata).length === 0) {
+      console.error('No metadata to send');
+      return;
+    }
+
+    // Create FormData similar to onedep component pattern
+    const formDataFile = new FormData();
+    formDataFile.append("jwtToken", jwtToken);
+    formDataFile.append(
+      "scientificMetadata",
+      JSON.stringify(this.metadata),
+    );
+
+    // Use the depositor service to send metadata
+    // This will call the /onedep/{depID}/metadata endpoint
+    this.depositor.sendMetadata(depID, formDataFile).subscribe({
+      next: (response) => {
+        console.log('Metadata sent successfully:', response);
+        // You can dispatch a success action or show a message here
+      },
+      error: (err) => {
+        console.error('Failed to send metadata:', err);
+        // You can dispatch a failure action or show an error message here
+      }
+    });
+  }
+
+  /**
+   * Alternative: Use the NgRx pattern to send metadata
+   * This dispatches an action that will be handled by the effects
+   * Note: This will create a new deposition entry via submitDeposition action
+   */
+  sendMetadataViaStore(jwtToken: string) {
+    if (!this.metadata || Object.keys(this.metadata).length === 0) {
+      console.error('No metadata to send');
+      return;
+    }
+
+    const formDataFile = new FormData();
+    formDataFile.append("jwtToken", jwtToken);
+    formDataFile.append(
+      "scientificMetadata",
+      JSON.stringify(this.metadata),
+    );
+
+    // Use the submitDeposition action with only metadata file
+    this.store.dispatch(
+      fromActions.submitDeposition({
+        deposition: {
+          email: this.user?.email || '',
+          orcidIds: [],
+          country: '',
+          method: '',
+          jwtToken: jwtToken,
+        },
+        files: [{ form: formDataFile, fileType: EmFile.Metadata }],
+      }),
+    );
   }
 
 }

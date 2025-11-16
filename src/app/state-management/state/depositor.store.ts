@@ -1,5 +1,19 @@
 import { OneDepCreated, OneDepUserInfo } from "shared/sdk/models/OneDep";
 
+export enum UploadStatus {
+  Pending = 'pending',
+  InProgress = 'in_progress',
+  Success = 'success',
+  Error = 'error'
+}
+
+export interface FileUploadProgress {
+  fileName: string;
+  fileType: string;
+  status: UploadStatus;
+  error?: string;
+}
+
 export interface DepositorState {
   depositor: string | undefined;
   interactionError: Error | undefined;
@@ -14,6 +28,8 @@ export interface OneDepState {
   oneDepInteractionError: Error | undefined;
   fileIDs: string[] | undefined;
   currentFileID: string | undefined;
+  depositionStatus: UploadStatus;
+  fileUploadProgress: FileUploadProgress[];
 }
 
 export const initialOneDepState: OneDepState = {
@@ -22,6 +38,8 @@ export const initialOneDepState: OneDepState = {
   oneDepInteractionError: undefined,
   fileIDs: [],
   currentFileID: undefined,
+  depositionStatus: UploadStatus.Pending,
+  fileUploadProgress: [],
 };
 
 export interface EmpiarSchemaState {

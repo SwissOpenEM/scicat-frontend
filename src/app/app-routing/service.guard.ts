@@ -34,7 +34,6 @@ export class ServiceGuard implements CanActivate {
         break;
       case "depositor":
         shouldActivate = this.appConfig.datasetOneDepIntegration;
-        console.log("depositor guard", shouldActivate);
         break;
     }
     if (!shouldActivate) {

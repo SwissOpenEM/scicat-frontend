@@ -13,6 +13,7 @@ export enum EmFile {
   MaskMap = "mask-map",
   AddMap = "add-map",
   Coordinates = "co-cif",
+  Metadata = "md-cif",
   Image = "img-emdb",
   FSC = "fsc-xml",
   LayerLines = "layer-lines",

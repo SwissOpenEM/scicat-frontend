@@ -35,6 +35,7 @@ import { MatStepperModule } from "@angular/material/stepper";
 import { MatTableModule } from "@angular/material/table";
 import { MatTabsModule } from "@angular/material/tabs";
 import { MatTooltipModule } from "@angular/material/tooltip";
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 
 import { PublishComponent } from "./publish/publish.component";
 import { jobsReducer } from "../state-management/reducers/jobs.reducer";
@@ -98,6 +99,8 @@ import { DepositorComponent } from "./depositor/depositor.component";
 import { DepositorWrapperComponent } from "./depositor/methodWrapper.component"
 import { QuestionnaireComponent } from "./depositor/empiar/questionnaire/questionnaire.component";
 import { depositorReducer } from "state-management/reducers/depositor.reducer";
+import { oneDepReducer } from "state-management/reducers/onedep.reducer";
+import { empiarReducer } from "state-management/reducers/empiar.reducer";
 import { CustomAuthorNameControlComponent } from "./depositor/empiar/customRenderers/authorRenderer";
 import { CustomEnumRendererComponent } from "./depositor/empiar/customRenderers/enumRenderer";
 import { CustomSemiEnumControlComponent } from "./depositor/empiar/customRenderers/imageSetRenderer";
@@ -137,6 +140,7 @@ import { CustomReferenceControlComponent } from "./depositor/empiar/customRender
     MatTabsModule,
     MatSnackBarModule,
     MatTooltipModule,
+    MatProgressSpinnerModule,
     NgxJsonViewerModule,
     ReactiveFormsModule,
     RouterModule,
@@ -154,6 +158,8 @@ import { CustomReferenceControlComponent } from "./depositor/empiar/customRender
     ]),
     StoreModule.forFeature("datasets", datasetsReducer),
     StoreModule.forFeature("depositor", depositorReducer),
+    StoreModule.forFeature("onedep", oneDepReducer),
+    StoreModule.forFeature("empiar", empiarReducer),
     StoreModule.forFeature("instruments", instrumentsReducer),
     StoreModule.forFeature("jobs", jobsReducer),
     StoreModule.forFeature("proposals", proposalsReducer),

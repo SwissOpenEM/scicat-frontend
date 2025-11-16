@@ -25,3 +25,18 @@ export const selectEmpiarSchema = createSelector(
   selectEMPIARState,
   (state) => state?.schema,
 );
+
+export const selectDepositionStatus = createSelector(
+  selectOneDepState,
+  (state) => state.depositionStatus,
+);
+
+export const selectFileUploadProgress = createSelector(
+  selectOneDepState,
+  (state) => state.fileUploadProgress,
+);
+
+export const selectDepositionError = createSelector(
+  selectOneDepState,
+  (state) => state.oneDepInteractionError,
+);

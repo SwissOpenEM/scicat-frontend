@@ -59,7 +59,7 @@
             <p class="deposition-info">
               Before proceeding with deposition, please ensure that the scientific metadata for this dataset is complete and accurate.
               You can verify it by looking through the scientific metadata in the "Details" tab. 
-              If it requires changes you can update it using the metadata schema (when provided).
+              If it requires changes you can update metadata using the schema (when provided).
               Please note, when SI values and units are present, you only need to make changes to the initially provided values and units, 
               convertion to SI will be done automatically, after submitting. 
             </p>
@@ -94,17 +94,16 @@
               Re-submit metadata
             </button>
           </div>
-          <mat-form-field class="method-name">
-            <mat-label>Experimental Method</mat-label>
-            <mat-select required [formControl]="depositionRepository" (selectionChange)="onChooseRepo()">
-              <mat-option *ngFor="let repo of supportedDepositionList" [value]="repo.value">
-                {{ repo.viewValue }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
         </mat-card-content>
 
-    
+        <mat-form-field class="method-name">
+          <mat-label>Experimental Method</mat-label>
+          <mat-select required [formControl]="depositionRepository" (selectionChange)="onChooseRepo()">
+            <mat-option *ngFor="let repo of supportedDepositionList" [value]="repo.value">
+              {{ repo.viewValue }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
 
       <!------  here put scientific Metadata ------>
       </mat-card>

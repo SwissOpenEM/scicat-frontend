@@ -44,6 +44,20 @@ export const accessEmpiarSchemaFailure = createAction(
   props<{ err: Error }>(),
 );
 
+// Upload progress tracking actions
+export const startDepositionCreation = createAction(
+  "[OneDep] Start Deposition Creation"
+);
+
+export const updateFileUploadStatus = createAction(
+  "[OneDep] Update File Upload Status",
+  props<{ fileName: string; fileType: string; status: string; error?: string }>()
+);
+
+export const resetUploadProgress = createAction(
+  "[OneDep] Reset Upload Progress"
+);
+
 // export const createDepositionAction = createAction(
 //   "[OneDep] Create Deposition",
 //   props<{ deposition: OneDepUserInfo }>(),

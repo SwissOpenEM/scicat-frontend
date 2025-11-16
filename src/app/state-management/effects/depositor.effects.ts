@@ -74,24 +74,79 @@ export class OneDepEffects {
   submitDeposition$ = createEffect(() => {
     return this.actions$.pipe(
       ofType(fromActions.submitDeposition),
+      tap(() => {
+        // Dispatch action to show deposition creation is in progress
+        this.store.dispatch(fromActions.startDepositionCreation());
+      }),
       switchMap(({ deposition, files }) =>
         this.onedepDepositor.createDep(deposition).pipe(
           tap((dep) => {
-          const message = {
-            type: MessageType.Success,
-            content: `Deposition entry created: ${dep.id}. Start uploading files.`,
-            duration: 10000,
-          };
-          this.store.dispatch(showMessageAction({ message }));
+            const message = {
+              type: MessageType.Success,
+              content: `Deposition entry created: ${dep.id}. Start uploading files.`,
+              duration: 10000,
+            };
+            this.store.dispatch(showMessageAction({ message }));
+
+            // Initialize file upload progress for each file
+            files.forEach((file) => {
+              const fileName = this.getFileNameFromFormData(file.form) || 'Unknown';
+              this.store.dispatch(
+                fromActions.updateFileUploadStatus({
+                  fileName,
+                  fileType: file.fileType,
+                  status: 'pending',
+                })
+              );
+            });
           }),
           switchMap((dep) =>
             from(files).pipe(
-              concatMap((file) =>
-                file.fileType === EmFile.Coordinates
-                  ? this.onedepDepositor.sendCoordFile(dep.id, file.form)
-                  : this.onedepDepositor.sendFile(dep.id, file.form),
-              ),
-              
+              concatMap((file) => {
+                const fileName = this.getFileNameFromFormData(file.form) || 'Unknown';
+
+                // Mark file as in progress
+                this.store.dispatch(
+                  fromActions.updateFileUploadStatus({
+                    fileName,
+                    fileType: file.fileType,
+                    status: 'in_progress',
+                  })
+                );
+
+                const uploadObservable =
+                  file.fileType === EmFile.Coordinates
+                    ? this.onedepDepositor.sendCoordFile(dep.id, file.form)
+                    : file.fileType === EmFile.Metadata
+                    ? this.onedepDepositor.sendMetadata(dep.id, file.form)
+                    : this.onedepDepositor.sendFile(dep.id, file.form);
+
+                return uploadObservable.pipe(
+                  tap(() => {
+                    // Mark file as success
+                    this.store.dispatch(
+                      fromActions.updateFileUploadStatus({
+                        fileName,
+                        fileType: file.fileType,
+                        status: 'success',
+                      })
+                    );
+                  }),
+                  catchError((err) => {
+                    // Mark file as error
+                    this.store.dispatch(
+                      fromActions.updateFileUploadStatus({
+                        fileName,
+                        fileType: file.fileType,
+                        status: 'error',
+                        error: err.message || 'Upload failed',
+                      })
+                    );
+                    return of(null); // Continue with other files
+                  })
+                );
+              }),
+
               last(),
               map(() =>
                 fromActions.submitDepositionSuccess({
@@ -105,6 +160,18 @@ export class OneDepEffects {
       ),
     );
   });
+
+  private getFileNameFromFormData(formData: FormData): string | null {
+    const file = formData.get('file') as File;
+    if (file && file.name) {
+      return file.name;
+    }
+    // For metadata-only uploads
+    if (formData.has('scientificMetadata')) {
+      return 'metadata.cif';
+    }
+    return null;
+  }
 
   submitDepositionSuccess$ = createEffect(() => {
     return this.actions$.pipe(

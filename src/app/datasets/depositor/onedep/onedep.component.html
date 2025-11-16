@@ -323,6 +323,69 @@
             Download mmCIF
             </button>
           </div>
+
+          <!-- Upload Progress Section -->
+          <mat-card *ngIf="(depositionStatus$ | async) !== 'pending'" class="upload-progress-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>cloud_upload</mat-icon>
+              <mat-card-title>Upload Progress</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <!-- Deposition Creation Status -->
+              <div class="progress-item">
+                <div class="progress-content">
+                  <mat-icon [ngClass]="{
+                    'status-pending': (depositionStatus$ | async) === 'pending',
+                    'status-progress': (depositionStatus$ | async) === 'in_progress',
+                    'status-success': (depositionStatus$ | async) === 'success',
+                    'status-error': (depositionStatus$ | async) === 'error'
+                  }">
+                    <ng-container [ngSwitch]="depositionStatus$ | async">
+                      <mat-spinner *ngSwitchCase="'in_progress'" diameter="24"></mat-spinner>
+                      <span *ngSwitchCase="'success'">check_circle</span>
+                      <span *ngSwitchCase="'error'">error</span>
+                      <span *ngSwitchCase="'pending'">radio_button_unchecked</span>
+                    </ng-container>
+                  </mat-icon>
+                  <span class="progress-label">Creating deposition entry</span>
+                </div>
+              </div>
+
+              <!-- File Upload Progress -->
+              <div class="file-progress-list" *ngIf="(fileUploadProgress$ | async) as fileProgress">
+                <div class="progress-item" *ngFor="let file of fileProgress">
+                  <div class="progress-content">
+                    <mat-icon [ngClass]="{
+                      'status-pending': file.status === 'pending',
+                      'status-progress': file.status === 'in_progress',
+                      'status-success': file.status === 'success',
+                      'status-error': file.status === 'error'
+                    }">
+                      <ng-container [ngSwitch]="file.status">
+                        <mat-spinner *ngSwitchCase="'in_progress'" diameter="24"></mat-spinner>
+                        <span *ngSwitchCase="'success'">check_circle</span>
+                        <span *ngSwitchCase="'error'">error</span>
+                        <span *ngSwitchCase="'pending'">radio_button_unchecked</span>
+                      </ng-container>
+                    </mat-icon>
+                    <span class="progress-label">
+                      Uploading {{ file.fileName }} ({{ file.fileType }})
+                    </span>
+                  </div>
+                  <span *ngIf="file.error" class="error-message">{{ file.error }}</span>
+                </div>
+              </div>
+
+              <!-- Deposition Link -->
+              <div *ngIf="(deposition$ | async) as deposition" class="deposition-link">
+                <mat-icon>link</mat-icon>
+                <a [href]="'https://onedep-depui-test.wwpdb.org/deposition/api/v1/depositions/' + deposition.id + '/view'" target="_blank">
+                  View Deposition: {{ deposition.id }}
+                </a>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
         </mat-card-content>
       </mat-card>
     </div>
