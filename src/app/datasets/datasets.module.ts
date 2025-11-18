@@ -105,6 +105,7 @@ import { CustomAuthorNameControlComponent } from "./depositor/empiar/customRende
 import { CustomEnumRendererComponent } from "./depositor/empiar/customRenderers/enumRenderer";
 import { CustomSemiEnumControlComponent } from "./depositor/empiar/customRenderers/imageSetRenderer";
 import { CustomReferenceControlComponent } from "./depositor/empiar/customRenderers/referenceRenderer";
+import { OrcidFormatterDirective } from "./depositor/onedep/onedep.directive";
 
 @NgModule({
   imports: [
@@ -208,11 +209,12 @@ import { CustomReferenceControlComponent } from "./depositor/empiar/customRender
     DepositorWrapperComponent, 
     EmpiarComponent,
     OneDepComponent,
+    OrcidFormatterDirective,
     QuestionnaireComponent,
     CustomAuthorNameControlComponent,
     CustomEnumRendererComponent,
     CustomSemiEnumControlComponent,
-    CustomReferenceControlComponent, 
+    CustomReferenceControlComponent,
   ],
   providers: [
     ArchivingService,
