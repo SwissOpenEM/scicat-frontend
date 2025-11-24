@@ -41,3 +41,11 @@ export interface FileUpload {
   form: FormData;
   fileType: EmFile;
 }
+
+export interface SuccessfullDeposition {
+    status: string;
+    action: string;
+    step: string;
+    details: string;
+    date: string;
+  }

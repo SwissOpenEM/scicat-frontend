@@ -78,8 +78,9 @@ export class OneDepEffects {
         // Dispatch action to show deposition creation is in progress
         this.store.dispatch(fromActions.startDepositionCreation());
       }),
-      switchMap(({ deposition, files }) =>
-        this.onedepDepositor.createDep(deposition).pipe(
+      switchMap(({ deposition, files }) => {
+        const jwtToken = deposition.jwtToken;
+        return this.onedepDepositor.createDep(deposition).pipe(
           tap((dep) => {
             const message = {
               type: MessageType.Success,
@@ -148,16 +149,43 @@ export class OneDepEffects {
               }),
 
               last(),
-              map(() =>
-                fromActions.submitDepositionSuccess({
-                  deposition: dep as OneDepCreated,
-                }),
-              ),
+              switchMap(() => {
+                const processForm = new FormData();
+                processForm.append('jwtToken', jwtToken);
+                return this.onedepDepositor.process(dep.id, processForm).pipe(
+                  tap(() => {
+                    const message = {
+                      type: MessageType.Success,
+                      content: `Deposition ${dep.id} processed successfully.`,
+                      duration: 5000,
+                    };
+                    this.store.dispatch(showMessageAction({ message }));
+                  }),
+                  map(() =>
+                    fromActions.submitDepositionSuccess({
+                      deposition: dep as OneDepCreated,
+                    }),
+                  ),
+                  catchError((err) => {
+                    const errorMessage =
+                      err instanceof HttpErrorResponse
+                        ? (err.error?.message ?? err.message ?? "Unknown error")
+                        : err.message || "Unknown error";
+                    const message = {
+                      type: MessageType.Error,
+                      content: `Failed to process deposition ${dep.id}: ${errorMessage}`,
+                      duration: 10000,
+                    };
+                    this.store.dispatch(showMessageAction({ message }));
+                    return of(fromActions.submitDepositionFailure({ err }));
+                  })
+                );
+              }),
             ),
           ),
           catchError((err) => of(fromActions.submitDepositionFailure({ err }))),
-        ),
-      ),
+        );
+      }),
     );
   });
 

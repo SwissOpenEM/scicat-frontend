@@ -6,6 +6,7 @@ import {
   DepBackendVersion,
   OneDepUserInfo,
   OneDepCreated,
+  SuccessfullDeposition,
   UploadedFile,
 } from "../models/OneDep";
 
@@ -53,6 +54,14 @@ export class Depositor {
       form,
     );
   }
+
+  process(depID: string, form: FormData): Observable<SuccessfullDeposition> {
+    return this.http.post<SuccessfullDeposition>(
+      `${this.config.depositorURL}/onedep/${depID}/process`,
+      form,
+    );
+  }
+
 
   downloadCoordinatesWithMetadata(file: File, metadata: any) {
     const formDataFile = new FormData();
