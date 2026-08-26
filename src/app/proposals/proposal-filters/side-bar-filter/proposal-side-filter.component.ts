@@ -1,4 +1,11 @@
-import { Component, Input, Output, EventEmitter, OnInit } from "@angular/core";
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnDestroy,
+} from "@angular/core";
 import { MatDatepickerInputEvent } from "@angular/material/datepicker";
 import { ActivatedRoute, Router } from "@angular/router";
 import { Store } from "@ngrx/store";
@@ -27,11 +34,12 @@ import { FilterConfig } from "state-management/state/user.store";
   styleUrls: ["./proposal-side-filter.component.scss"],
   standalone: false,
 })
-export class ProposalSideFilterComponent implements OnInit {
+export class ProposalSideFilterComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
   appConfig = this.appConfigService.getConfig();
   activeFilters: Record<string, string[] | DateRange> = {};
   collapsed = false;
+  @Output() collapsedChange = new EventEmitter<boolean>();
 
   filterLists: FilterConfig[] = [];
 
@@ -132,7 +140,7 @@ export class ProposalSideFilterComponent implements OnInit {
         }),
       );
     }
-    if (this.appConfig.checkBoxFilterClickTrigger) {
+    if (this.appConfig.autoApplyFilters) {
       this.applyFilters();
     }
   }
@@ -235,6 +243,7 @@ export class ProposalSideFilterComponent implements OnInit {
 
   toggleCollapse() {
     this.collapsed = !this.collapsed;
+    this.collapsedChange.emit(this.collapsed);
   }
 
   reset() {

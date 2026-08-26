@@ -1,5 +1,23 @@
 <ng-template [ngIf]="dataset">
-  <nav mat-tab-nav-bar [tabPanel]="tabPanel">
+  <div
+    fxLayout="row"
+    fxLayoutAlign="end center"
+    *ngIf="appConfig.shoppingCartEnabled"
+    class="cart-button-row"
+  >
+    <button
+      id="addToBatchButton"
+      mat-button
+      (click)="onAddToBatch()"
+      [disabled]="isInBatch$ | async"
+      color="primary"
+      class="add-batch"
+    >
+      <mat-icon>my_library_add</mat-icon>
+      Add to Selection
+    </button>
+  </div>
+  <nav data-cy="dataset-dashboard-tabs" mat-tab-nav-bar [tabPanel]="tabPanel">
     <ng-container *ngFor="let link of navLinks">
       <a
         mat-tab-link
@@ -22,9 +40,7 @@
   <error-page
     *ngIf="(loading$ | async) === false"
     [errorTitle]="'Dataset not found'"
-    [message]="
-      'The dataset you are trying to view either doesn\'t exist or you don\'t have permission to view it.'
-    "
+    [message]="'The dataset you are trying to view either doesn\'t exist or you don\'t have permission to view it.'"
   >
   </error-page>
 </ng-template>

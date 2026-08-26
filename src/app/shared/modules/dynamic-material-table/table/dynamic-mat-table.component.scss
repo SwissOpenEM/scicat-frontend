@@ -8,21 +8,23 @@
   position: relative;
   overflow: hidden;
   transition: 0.3s cubic-bezier(0.46, -0.72, 0.46, 1.54);
-  border: 2px rgb(0, 150, 136);
 
-  .global-search-wrapper {
-    text-align: right;
-    padding: 0 20px;
+  box-shadow: var(--theme-table-shadow);
+  border: var(--theme-table-border, 1px solid rgba(153, 213, 233, 0.7));
+  border-radius: 4px;
 
-    mat-form-field {
-      min-width: 30%;
-    }
+  &.disable-border {
+    box-shadow: none;
+    border: none;
   }
 }
 
-.dynamic-table {
-  min-width: 100%;
-  width: max-content;
+::ng-deep .mat-mdc-header-cell .mat-sort-header-content {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* Fixed Scroll */
@@ -34,10 +36,18 @@
   min-height: 48px;
 }
 
+.dynamic-table {
+  min-width: 100%;
+  width: max-content;
+}
+
 .label-cell {
-  display: flex;
-  cursor: inherit;
-  justify-content: flex-start;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  cursor: pointer;
 }
 
 mat-cell .label-cell {
@@ -95,6 +105,16 @@ mat-footer-row {
   box-sizing: border-box;
 }
 
+.table-row mat-cell {
+  border-bottom-width: 0;
+}
+
+mat-header-row.header,
+mat-row.table-row {
+  min-height: 40px !important;
+  height: 42px !important;
+}
+
 mat-cell,
 mat-footer-cell,
 mat-header-cell {
@@ -123,6 +143,9 @@ cdk-virtual-scroll-viewport {
   font-weight: bolder;
   font-size: 14px;
   width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .header {
@@ -150,18 +173,6 @@ cdk-virtual-scroll-viewport {
   }
   mat-icon {
     padding: 11px !important;
-  }
-}
-
-// table action menu
-.table-global-search {
-  max-width: 300px;
-  min-width: initial;
-  padding: 0 !important;
-  background-color: inherit;
-
-  .global-search-wrapper {
-    width: 100%;
   }
 }
 
@@ -240,10 +251,6 @@ cdk-virtual-scroll-viewport {
   background: #efefef;
 }
 
-.table-row mat-cell {
-  border-bottom-width: 0;
-}
-
 .expanded-detail {
   overflow: hidden;
   display: flex;
@@ -259,39 +266,12 @@ cdk-virtual-scroll-viewport {
 }
 
 ::ng-deep .cell-tooltip {
-  padding: 8px;
   font-size: 12px;
   min-width: 100px;
   text-align: center;
   margin-right: -20px;
 }
 
-/* Custom Tooltip */
-.tooltip {
-  position: relative;
-  display: inline-block;
-  border-bottom: 1px dotted black;
-}
-
-.tooltip .tooltiptext {
-  visibility: hidden;
-  min-width: 120px;
-  background-color: #e91e63;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px 0;
-  position: absolute;
-  z-index: 1;
-  left: 0;
-  top: 43px;
-  margin-left: -86%;
-}
-
-.tooltip:hover .tooltiptext {
-  visibility: visible;
-  white-space: pre;
-}
 ::ng-deep .mat-mdc-footer-cell {
   flex-direction: column !important;
 }
@@ -321,23 +301,47 @@ cdk-virtual-scroll-viewport {
 
 .general-warning {
   cursor: pointer;
-  padding-right: 0.5em;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  font-size: 18px;
 }
 
 ::ng-deep .active-sort .mat-sort-header-arrow svg {
   color: var(--theme-warn-default) !important;
 }
 
+.cell-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px; /* space between icon and text */
+  max-width: 100%;
+}
+
+.cell-icon {
+  color: var(--theme-primary-default);
+  flex-shrink: 0; /* prevent icon from being hidden */
+  font-size: 20px;
+}
+
+.cell-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .hover-card {
   min-width: 300px;
   max-width: 620px;
 }
+
 .hover-icon {
   color: var(--theme-primary-default);
 }
 
 .hover-card-title {
-  padding: 6px 16px;
+  padding: 0 16px;
+  font-size: 14px;
   border-radius: 4px 4px 0 0;
   color: white;
   background: var(--theme-header-1-lighter);
@@ -348,6 +352,8 @@ cdk-virtual-scroll-viewport {
   background: white;
   color: var(--theme-header-1-lighter-contrast);
   border-radius: 0 0 4px 4px;
+  white-space: pre-line;
+  word-wrap: break-word;
 }
 
 /* zebra stripes */
@@ -357,4 +363,197 @@ cdk-virtual-scroll-viewport {
 
 .mat-mdc-table .mat-mdc-row:nth-child(odd) {
   background-color: #ffffff;
+}
+
+.table-header-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.5rem 0;
+
+  &.with-side-filter {
+    margin-left: 3rem;
+  }
+
+  .global-search-wrapper {
+    padding: 0 20px;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 500px;
+    max-width: 33%;
+
+    mat-form-field {
+      width: 100%;
+    }
+
+    ::ng-deep .mat-mdc-text-field-wrapper {
+      background-color: white;
+      border-radius: 24px;
+      border: 1px solid var(--theme-hover-lighter);
+      padding: 0 8px;
+
+      &:hover {
+        border-color: var(--theme-primary-default);
+      }
+    }
+
+    ::ng-deep .mat-mdc-text-field-wrapper.mdc-text-field--focused {
+      border-color: var(--theme-primary-default);
+    }
+
+    ::ng-deep .mat-mdc-form-field-underline,
+    ::ng-deep .mdc-line-ripple,
+    ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
+
+    ::ng-deep .mat-mdc-form-field-infix {
+      padding: 12px 20px;
+      min-height: auto;
+    }
+
+    ::ng-deep .mat-mdc-form-field-icon-prefix .mat-icon {
+      margin-right: -30px;
+    }
+  }
+
+}
+
+
+// Root level paginator container (bottom of table)
+mat-paginator {
+  //flex: 1 1 auto;
+  white-space: nowrap;
+  //min-width: fit-content;
+}
+
+::ng-deep mat-paginator.mat-mdc-paginator {
+  border: 1px solid var(--theme-hover-lighter);
+  border-radius: 24px;
+  margin-right: 10px;
+  margin-bottom: 5px;
+
+  /* Target the paginator's form field */
+  mat-form-field.mat-mdc-form-field.mat-mdc-paginator-page-size-select {
+    height: 30px !important;
+    /* Your desired height */
+    min-height: 30px !important;
+  }
+
+  /* Align the label vertically */
+  .mat-mdc-paginator-page-size-label {
+    line-height: 30px;
+    /* Match the form field height */
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  /* Align the select value text vertically */
+  .mat-mdc-select-value-text {
+    line-height: 30px;
+    /* Match the form field height */
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .mat-mdc-select-value {
+    line-height: 30px !important;
+    /* Match the form field height */
+  }
+
+  /* Ensure the select trigger fills the height */
+  .mat-mdc-select-trigger {
+    height: 100%;
+  }
+
+  /* Adjust the text field wrapper height */
+  .mat-mdc-text-field-wrapper {
+    height: 100%;
+    min-height: 100% !important;
+  }
+
+  /* Remove extra padding from the form field infix */
+  .mat-mdc-form-field-infix {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}
+
+.paginator-container {
+  display: flex;
+  flex: 1;
+  height: 48px;
+  //border: 1px solid var(--theme-hover-lighter);
+  //border-radius: 24px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.paginator-container.is-loading {
+  ::ng-deep .mat-mdc-paginator-range-label {
+    position: relative;
+    color: transparent;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--theme-primary-default, rgba(0, 0, 0, 0.6));
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: paginator-range-spin 0.8s linear infinite;
+    }
+  }
+}
+
+// Paginator element reordering
+// Reorder: Items per page -> Previous -> Page info -> Next
+::ng-deep .paginator-container mat-paginator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .mat-mdc-paginator-page-size {
+    order: 1;
+    margin-right: auto;
+  }
+
+  .mat-mdc-paginator-range-actions {
+    order: 1;
+  }
+
+  .mat-mdc-paginator-navigation-previous,
+  .mat-mdc-paginator-navigation-first {
+    order: 1;
+  }
+
+  .mat-mdc-paginator-range-label {
+    order: 2;
+    margin: 0;
+  }
+
+  .mat-mdc-paginator-navigation-next,
+  .mat-mdc-paginator-navigation-last {
+    order: 3;
+  }
+}
+
+@keyframes paginator-range-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@media (max-width: 1340px) {
+  .table-header-controls .global-search-wrapper {
+    max-width: 100%;
+  }
 }

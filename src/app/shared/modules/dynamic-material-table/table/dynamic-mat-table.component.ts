@@ -25,7 +25,6 @@ import { TableCoreDirective } from "../cores/table.core.directive";
 import { TableService } from "./dynamic-mat-table.service";
 import { TableField } from "../models/table-field.model";
 import { AbstractFilter } from "./extensions/filter/compare/abstract-filter";
-import { HeaderFilterComponent } from "./extensions/filter/header-filter.component";
 import { MatDialog } from "@angular/material/dialog";
 import {
   trigger,
@@ -78,6 +77,7 @@ import {
 } from "../models/table-menu.model";
 import { TableDataSource } from "../cores/table-data-source";
 import { DatePipe } from "@angular/common";
+import { AppConfigService } from "app-config.service";
 
 export interface IDynamicCell {
   row: TableRow;
@@ -188,6 +188,9 @@ export const expandAnimation = trigger("detailExpand", [
   animations: [tableAnimation, expandAnimation],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
+  host: {
+    "[class.disable-border]": "disableBorder",
+  },
 })
 export class DynamicMatTableComponent<T extends TableRow>
   extends TableCoreDirective<T>
@@ -213,11 +216,7 @@ export class DynamicMatTableComponent<T extends TableRow>
   @ViewChild("printContentRef", { static: true }) printContentRef!: ElementRef;
   @ViewChild("tbl", { static: true }) tbl: ElementRef;
 
-  @ContentChildren(HeaderFilterComponent)
-
   // Other public fields
-  headerFilterList!: QueryList<HeaderFilterComponent>;
-
   printing = true;
   printTemplate: TemplateRef<any> = null;
   public resizeColumn: ResizeColumn = new ResizeColumn();
@@ -255,6 +254,23 @@ export class DynamicMatTableComponent<T extends TableRow>
       overlayX: "start",
       overlayY: "center",
       offsetX: 4,
+    },
+  ];
+  /** Overlay positions for metadata hover */
+  metadataOverlayPositions: ConnectedPosition[] = [
+    {
+      originX: "end",
+      originY: "center",
+      overlayX: "start",
+      overlayY: "center",
+      offsetX: 8,
+    },
+    {
+      originX: "start",
+      originY: "center",
+      overlayX: "end",
+      overlayY: "center",
+      offsetX: -8,
     },
   ];
 
@@ -302,6 +318,9 @@ export class DynamicMatTableComponent<T extends TableRow>
 
   @Input() emptyMessage = "No data available";
   @Input() emptyIcon = "info";
+  @Input() sideFilterCollapsed = false;
+
+  appConfig = this.appConfigService.getConfig();
 
   constructor(
     public dialog: MatDialog,
@@ -313,6 +332,7 @@ export class DynamicMatTableComponent<T extends TableRow>
     private overlayPositionBuilder: OverlayPositionBuilder,
     public readonly config: TableSetting,
     private datePipe: DatePipe,
+    public appConfigService: AppConfigService,
   ) {
     super(tableService, cdr, config);
 
@@ -512,6 +532,9 @@ export class DynamicMatTableComponent<T extends TableRow>
         if (this.standardDataSource) {
           this.standardDataSource.data = data;
         }
+        if (this.tvsDataSource) {
+          this.tvsDataSource.data = data;
+        }
       });
     }
   }
@@ -583,12 +606,6 @@ export class DynamicMatTableComponent<T extends TableRow>
     } else {
       return null;
     }
-  }
-
-  filter_onChanged(column: TableField<T>, filter: AbstractFilter[]) {
-    this.standardDataSource.setFilter(column.name, filter).subscribe(() => {
-      this.clearSelection();
-    });
   }
 
   onContextMenu(event: MouseEvent, column: TableField<T>, row: any) {
@@ -790,9 +807,6 @@ export class DynamicMatTableComponent<T extends TableRow>
           this.rowSelectionModel,
         );
       }
-    } else if (e.type === TableMenuAction.FilterClear) {
-      this.standardDataSource.clearFilter();
-      this.headerFilterList.forEach((hf) => hf.clearColumn_OnClick());
     } else if (e.type === TableMenuAction.Print) {
       this.onTableEvent.emit({
         event: TableEventType.ExportData,
@@ -850,6 +864,23 @@ export class DynamicMatTableComponent<T extends TableRow>
       this.globalTextSearch = newValue;
       this.globalTextSearchChange.emit(this.globalTextSearch);
     }
+  }
+
+  onGlobalTextSearchApply() {
+    this.globalTextSearch_onChange(this.globalTextSearch);
+    this.globalTextSearchApply.emit(this.globalTextSearch);
+  }
+
+  onGlobalTextSearchClear() {
+    this.globalTextSearch = "";
+    this.globalSearchUpdate.next("");
+    this.globalTextSearchChange.emit("");
+    this.globalTextSearchApply.emit("");
+  }
+
+  onGlobalTextSearchEnter(event: Event) {
+    event.preventDefault();
+    this.onGlobalTextSearchApply();
   }
 
   autoHeight() {
@@ -1053,17 +1084,35 @@ export class DynamicMatTableComponent<T extends TableRow>
     return value;
   }
 
+  metadataNameHoverContent(row: any) {
+    if (!row.human_name) {
+      return `<strong>Metadata name: </strong><span class="metadata-name">${row.name}</span>`;
+    }
+    return (
+      "<strong>Human readable name: </strong>" +
+      (row.human_name || "") +
+      "\n <strong>Metadata name: </strong>" +
+      row.name
+    );
+  }
+
   /************************************ Drag & Drop Column *******************************************/
 
   dragStarted(event: Event) {}
 
   dropListDropped(event: CdkDragDrop<string[]>) {
-    const columnPreviousIndex = event.item.data.columnIndex;
+    const displayedColumnIndexMap = this.columns
+      .map((column, index) => ({ column, index }))
+      .filter(({ column }) => column.display !== "hidden");
+    const from = displayedColumnIndexMap[event.previousIndex];
+    const to = displayedColumnIndexMap[event.currentIndex];
 
-    if (event) {
-      this.dragDropData.dropColumnIndex = event.currentIndex;
-      this.moveColumn(columnPreviousIndex, event.currentIndex);
+    if (!from || !to || from.index === to.index) {
+      return;
     }
+
+    this.dragDropData.dropColumnIndex = to.index;
+    this.moveColumn(from.index, to.index);
   }
 
   drop(event: CdkDragDrop<string[]>) {

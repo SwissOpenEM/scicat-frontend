@@ -1,9 +1,6 @@
 import { createSelector, createFeatureSelector } from "@ngrx/store";
 import { ProposalsState } from "../state/proposals.store";
-import {
-  selectHasFetchedSettings,
-  selectTablesSettings,
-} from "./user.selectors";
+import { selectHasFetchedSettings, selectSettings } from "./user.selectors";
 import { selectInstrumentWithIdAndLabel } from "./instruments.selectors";
 
 const selectProposalsState = createFeatureSelector<ProposalsState>("proposals");
@@ -54,14 +51,29 @@ export const selectProposalsCount = createSelector(
   (state) => state.proposalsCount,
 );
 
-export const selectProposalsfacetCounts = createSelector(
+export const selectRelatedProposalsCountIsLoading = createSelector(
+  selectProposalsState,
+  (state) => state.relatedProposalsCountIsLoading,
+);
+
+export const selectProposalsFacetCounts = createSelector(
   selectProposalsState,
   (state) => state.facetCounts,
+);
+
+export const selectProposalsFacetCountsIsLoading = createSelector(
+  selectProposalsState,
+  (state) => state.facetCountsIsLoading,
 );
 
 export const selectDatasetsCount = createSelector(
   selectProposalsState,
   (state) => state.datasetsCount,
+);
+
+export const selectDatasetsCountIsLoading = createSelector(
+  selectProposalsState,
+  (state) => state.datasetsCountIsLoading,
 );
 
 export const selectHasPrefilledFilters = createSelector(
@@ -118,20 +130,31 @@ export const selectViewProposalPageViewModel = createSelector(
   selectDatasetsPage,
   selectDatasetsCount,
   selectDatasetsPerPage,
-  (proposal, datasets, currentPage, datasetCount, datasetsPerPage) => ({
+  selectDatasetsCountIsLoading,
+  (
     proposal,
     datasets,
     currentPage,
     datasetCount,
     datasetsPerPage,
+    isLoading,
+  ) => ({
+    proposal,
+    datasets,
+    currentPage,
+    datasetCount,
+    datasetsPerPage,
+    isLoading,
   }),
 );
 
 export const selectRelatedProposalsPageViewModel = createSelector(
   selectProposalsState,
-  ({ relatedProposals, relatedProposalsCount }) => ({
+  selectRelatedProposalsCountIsLoading,
+  ({ relatedProposals, relatedProposalsCount }, isLoading) => ({
     relatedProposals,
     relatedProposalsCount,
+    isLoading,
   }),
 );
 
@@ -197,9 +220,13 @@ export const selectDatasetsQueryParams = createSelector(
 export const selectProposalsWithCountAndTableSettings = createSelector(
   selectEnrichedProposals,
   selectProposalsCount,
-  selectTablesSettings,
   selectHasFetchedSettings,
-  (proposals, count, tablesSettings, hasFetchedSettings) => {
+  selectSettings,
+  (proposals, count, hasFetchedSettings, settings) => {
+    const tablesSettings = {
+      columns: settings.fe_proposal_table_columns,
+    };
+
     return {
       proposals,
       count,
@@ -210,7 +237,7 @@ export const selectProposalsWithCountAndTableSettings = createSelector(
 );
 
 export const selectProposalsFacetCountsWithInstrumentName = createSelector(
-  selectProposalsfacetCounts,
+  selectProposalsFacetCounts,
   selectInstrumentWithIdAndLabel,
   (facets, instruments) => {
     const instrumentIds = instruments.map((inst) => {

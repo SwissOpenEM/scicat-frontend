@@ -101,15 +101,17 @@ export class InstrumentsDashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.subscriptions.push(
       this.instrumentsWithCountAndTableSettings$.subscribe(
-        ({ instruments, count, tablesSettings }) => {
+        ({ instruments, count, isLoading, tablesSettings }) => {
           this.tablesSettings = tablesSettings;
           this.dataSource.next(instruments);
           this.pending = false;
 
-          const savedTableConfigColumns =
-            tablesSettings?.[this.tableName]?.columns;
+          const savedTableConfigColumns = tablesSettings?.columns;
           const tableSort = this.getTableSort();
-          const paginationConfig = this.getTablePaginationConfig(count);
+          const paginationConfig = this.getTablePaginationConfig(
+            count,
+            isLoading,
+          );
 
           const tableSettingsConfig =
             this.tableConfigService.getTableSettingsConfig(
@@ -159,7 +161,7 @@ export class InstrumentsDashboardComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  getTablePaginationConfig(dataCount = 0): TablePagination {
+  getTablePaginationConfig(dataCount = 0, isLoading = false): TablePagination {
     const { queryParams } = this.route.snapshot;
 
     return {
@@ -167,6 +169,7 @@ export class InstrumentsDashboardComponent implements OnInit, OnDestroy {
       pageIndex: queryParams.pageIndex,
       pageSize: queryParams.pageSize || this.defaultPageSize,
       length: dataCount,
+      isLoading: isLoading,
     };
   }
 
@@ -195,23 +198,16 @@ export class InstrumentsDashboardComponent implements OnInit, OnDestroy {
 
   saveTableSettings(setting: ITableSetting) {
     this.pending = true;
-    const columnsSetting = setting.columnSetting.map((column) => {
-      const { name, display, index, width } = column;
+    const columnsSetting = setting.columnSetting.map((column, index) => {
+      const { name, display, width } = column;
 
-      return { name, display, index, width };
+      return { name, display, order: index, width };
     });
-
-    const tablesSettings = {
-      ...this.tablesSettings,
-      [setting.settingName || this.tableName]: {
-        columns: columnsSetting,
-      },
-    };
 
     this.store.dispatch(
       updateUserSettingsAction({
         property: {
-          tablesSettings,
+          fe_instrument_table_columns: columnsSetting,
         },
       }),
     );

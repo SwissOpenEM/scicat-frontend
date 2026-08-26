@@ -7,6 +7,7 @@ import {
   selectIsLoggedIn,
   selectCurrentUserName,
   selectThumbnailPhoto,
+  selectIsAdmin,
 } from "state-management/selectors/user.selectors";
 import { selectDatasetsInBatchIndicator } from "state-management/selectors/datasets.selectors";
 import {
@@ -26,6 +27,7 @@ import { map, Observable, Subscription } from "rxjs";
 })
 export class AppHeaderComponent implements OnInit {
   private sub: Subscription;
+  showStatusBanner: boolean;
 
   config = this.appConfigService.getConfig();
   facility = this.config.facility ?? "";
@@ -42,6 +44,8 @@ export class AppHeaderComponent implements OnInit {
   profileImage$ = this.store.select(selectThumbnailPhoto);
   inBatchIndicator$ = this.store.select(selectDatasetsInBatchIndicator);
   isLoggedIn$ = this.store.select(selectIsLoggedIn);
+  isAdmin$ = this.store.select(selectIsAdmin);
+
   mainMenuConfig$: Observable<MainMenuOptions>;
   defaultMainPage$: Observable<string>;
   siteHeaderLogoUrl$: Observable<string>;
@@ -86,6 +90,8 @@ export class AppHeaderComponent implements OnInit {
     this.isSiteHeaderLogoUrlExternal$ = this.siteHeaderLogoUrl$.pipe(
       map((siteHeaderLogoUrl) => this.isFullUrl(siteHeaderLogoUrl)),
     );
+
+    this.showStatusBanner = !!this.config.statusBannerMessage;
   }
 
   logout(): void {

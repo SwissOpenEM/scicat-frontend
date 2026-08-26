@@ -40,6 +40,7 @@ export const fetchFacetCountsFailedAction = createAction(
 
 export const fetchMetadataKeysAction = createAction(
   "[Dataset] Fetch Metadata Keys",
+  props<{ searchTerm?: string }>(),
 );
 export const fetchMetadataKeysCompleteAction = createAction(
   "[Dataset] Fetch Metadata Keys Complete",
@@ -125,6 +126,9 @@ export const prefillBatchCompleteAction = createAction(
   props<{ batch: OutputDatasetObsoleteDto[] }>(),
 );
 export const addToBatchAction = createAction("[Dataset] Add To Batch");
+export const addCurrentToBatchAction = createAction(
+  "[Dataset] Add Current To Batch",
+);
 export const storeBatchAction = createAction(
   "[Dataset] Store To Batch",
   props<{ batch: OutputDatasetObsoleteDto[] }>(),
@@ -149,6 +153,10 @@ export const addDatasetFailedAction = createAction(
 
 export const updatePropertyAction = createAction(
   "[Dataset] Update Property",
+  props<{ pid: string; property: Record<string, unknown> }>(),
+);
+export const updatePropertyInlineAction = createAction(
+  "[Dataset] Update Property Inline",
   props<{ pid: string; property: Record<string, unknown> }>(),
 );
 export const updateScientificMetadataCompleteAction = createAction(

@@ -2,9 +2,9 @@ import * as fromSelectors from "./samples.selectors";
 import { SampleState } from "state-management/state/samples.store";
 import { initialUserState } from "state-management/state/user.store";
 import { createMock } from "shared/MockStubs";
-import { SampleClass } from "@scicatproject/scicat-sdk-ts-angular";
+import { OutputSampleDto } from "@scicatproject/scicat-sdk-ts-angular";
 
-const sample = createMock<SampleClass>({
+const sample = createMock<OutputSampleDto>({
   sampleId: "testId",
   ownerGroup: "testGroup",
   createdBy: "",
@@ -23,7 +23,9 @@ const initialSampleState: SampleState = {
   metadataKeys: [],
 
   samplesCount: 0,
+  samplesCountIsLoading: false,
   datasetsCount: 0,
+  datasetsCountIsLoading: false,
 
   hasPrefilledFilters: false,
 
@@ -204,8 +206,10 @@ describe("Sample Selectors", () => {
           initialSampleState.sampleFilters.text,
           initialSampleState.metadataKeys,
           initialSampleState.sampleFilters.characteristics,
-          initialUserState.tablesSettings,
+          initialUserState.settings,
           initialSampleState.samplesCount,
+          false, //hasAppliedFilters
+          initialSampleState.samplesCountIsLoading,
         ),
       ).toEqual({
         samples: [],
@@ -219,8 +223,12 @@ describe("Sample Selectors", () => {
         textFilter: "test",
         metadataKeys: [],
         characteristicsFilter: [],
-        tableSettings: {},
+        tableSettings: {
+          columns: initialUserState.settings.fe_sample_table_columns,
+        },
         count: 0,
+        hasAppliedFilters: false,
+        isLoading: false,
       });
     });
   });
@@ -236,6 +244,7 @@ describe("Sample Selectors", () => {
             initialSampleState.datasetFilters,
           ),
           initialSampleState.datasetsCount,
+          initialSampleState.datasetsCountIsLoading,
           fromSelectors.selectCurrentAttachments.projector(initialSampleState),
           initialUserState.currentUser,
         ),
@@ -245,6 +254,7 @@ describe("Sample Selectors", () => {
         datasetsPerPage: 25,
         datasetsPage: 0,
         datasetsCount: 0,
+        isLoading: false,
         attachments: [],
         user: undefined,
       });

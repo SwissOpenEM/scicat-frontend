@@ -2,6 +2,7 @@ import * as fromSelectors from "./proposals.selectors";
 import { ProposalsState } from "state-management/state/proposals.store";
 import { createMock } from "shared/MockStubs";
 import { ProposalClass } from "@scicatproject/scicat-sdk-ts-angular";
+import { TableColumn, Settings } from "state-management/models";
 
 const proposal = createMock<ProposalClass>({
   proposalId: "testId",
@@ -38,6 +39,7 @@ const initialProposalsState: ProposalsState = {
 
   relatedProposals: [],
   relatedProposalsCount: 0,
+  relatedProposalsCountIsLoading: false,
   relatedProposalsFilters: {
     skip: 0,
     limit: 25,
@@ -46,7 +48,9 @@ const initialProposalsState: ProposalsState = {
 
   proposalsCount: 0,
   datasetsCount: 0,
+  datasetsCountIsLoading: false,
   facetCounts: {},
+  facetCountsIsLoading: false,
 
   hasPrefilledFilters: true,
 
@@ -211,6 +215,7 @@ describe("Proposal Selectors", () => {
           ),
           initialProposalsState.datasetsCount,
           initialProposalsState.datasetFilters.limit,
+          initialProposalsState.datasetsCountIsLoading,
         ),
       ).toEqual({
         proposal,
@@ -218,6 +223,7 @@ describe("Proposal Selectors", () => {
         currentPage: 0,
         datasetCount: 0,
         datasetsPerPage: 25,
+        isLoading: false,
       });
     });
   });
@@ -320,20 +326,34 @@ describe("Proposal Selectors", () => {
         { proposalId: "p1", instrumentIds: ["i1"] } as any,
       ];
       const count = 1;
-      const tablesSettings = { col: "v" };
+
+      const proposalColumns: TableColumn[] = [
+        { name: "proposalId", enabled: true, order: 0, type: "standard" },
+      ];
+
+      const settings: Settings = {
+        tapeCopies: "",
+        datasetCount: 25,
+        jobCount: 25,
+        darkTheme: false,
+        fe_proposal_table_columns: proposalColumns,
+      };
+
       const hasFetchedSettings = true;
 
       expect(
         fromSelectors.selectProposalsWithCountAndTableSettings.projector(
           proposalsSample,
           count,
-          tablesSettings,
           hasFetchedSettings,
+          settings,
         ),
       ).toEqual({
         proposals: proposalsSample,
         count,
-        tablesSettings,
+        tablesSettings: {
+          columns: settings.fe_proposal_table_columns,
+        },
         hasFetchedSettings,
       });
     });
@@ -344,10 +364,12 @@ describe("Proposal Selectors", () => {
       expect(
         fromSelectors.selectRelatedProposalsPageViewModel.projector(
           initialProposalsState,
+          initialProposalsState.relatedProposalsCountIsLoading,
         ),
       ).toEqual({
         relatedProposals: initialProposalsState.relatedProposals,
         relatedProposalsCount: initialProposalsState.relatedProposalsCount,
+        isLoading: initialProposalsState.relatedProposalsCountIsLoading,
       });
     });
 

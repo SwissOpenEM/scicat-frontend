@@ -1,6 +1,6 @@
 import { createFeatureSelector, createSelector } from "@ngrx/store";
 import { SampleState } from "state-management/state/samples.store";
-import { selectCurrentUser, selectTablesSettings } from "./user.selectors";
+import { selectCurrentUser, selectSettings } from "./user.selectors";
 
 const selectSampleState = createFeatureSelector<SampleState>("samples");
 
@@ -34,9 +34,19 @@ export const selectSamplesCount = createSelector(
   (state) => state.samplesCount,
 );
 
+export const selectSamplesCountIsLoading = createSelector(
+  selectSampleState,
+  (state) => state.samplesCountIsLoading,
+);
+
 export const selectDatasetsCount = createSelector(
   selectSampleState,
   (state) => state.datasetsCount,
+);
+
+export const selectDatasetsCountIsLoading = createSelector(
+  selectSampleState,
+  (state) => state.datasetsCountIsLoading,
 );
 
 export const selectHasPrefilledFilters = createSelector(
@@ -98,6 +108,13 @@ export const selectSamplesPagination = createSelector(
   }),
 );
 
+export const selectHasAppliedFilters = createSelector(
+  selectFilters,
+  (filters) =>
+    filters.text !== "" ||
+    (filters.characteristics && filters.characteristics.length > 0),
+);
+
 export const selectSampleDashboardPageViewModel = createSelector(
   selectSamples,
   selectSamplesPagination,
@@ -106,8 +123,10 @@ export const selectSampleDashboardPageViewModel = createSelector(
   selectTextFilter,
   selectMetadataKeys,
   selectCharacteristicsFilter,
-  selectTablesSettings,
+  selectSettings,
   selectSamplesCount,
+  selectHasAppliedFilters,
+  selectSamplesCountIsLoading,
   (
     samples,
     samplesPagination,
@@ -116,8 +135,10 @@ export const selectSampleDashboardPageViewModel = createSelector(
     textFilter,
     metadataKeys,
     characteristicsFilter,
-    tableSettings,
+    settings,
     count,
+    hasAppliedFilters,
+    isLoading,
   ) => ({
     samples,
     samplesPagination,
@@ -126,8 +147,12 @@ export const selectSampleDashboardPageViewModel = createSelector(
     textFilter,
     metadataKeys,
     characteristicsFilter,
-    tableSettings,
+    tableSettings: {
+      columns: settings.fe_sample_table_columns,
+    },
     count,
+    hasAppliedFilters,
+    isLoading,
   }),
 );
 
@@ -137,6 +162,7 @@ export const selectSampleDetailPageViewModel = createSelector(
   selectDatasetsPerPage,
   selectDatasetsPage,
   selectDatasetsCount,
+  selectDatasetsCountIsLoading,
   selectCurrentAttachments,
   selectCurrentUser,
   (
@@ -145,6 +171,7 @@ export const selectSampleDetailPageViewModel = createSelector(
     datasetsPerPage,
     datasetsPage,
     datasetsCount,
+    isLoading,
     attachments,
     user,
   ) => ({
@@ -153,6 +180,7 @@ export const selectSampleDetailPageViewModel = createSelector(
     datasetsPerPage,
     datasetsPage,
     datasetsCount,
+    isLoading,
     attachments,
     user,
   }),

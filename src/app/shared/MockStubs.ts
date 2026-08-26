@@ -6,17 +6,16 @@ import { AppConfig } from "app-config.module";
 import { SciCatDataSource } from "./services/scicat.datasource";
 import {
   ActionConfig,
-  ActionDataset,
-} from "datasets/datafiles-actions/datafiles-action.interfaces";
+  ActionItems,
+} from "shared/modules/configurable-actions/configurable-action.interfaces";
 import { DataFiles_File } from "datasets/datafiles/datafiles.interfaces";
 import {
-  Attachment,
   Instrument,
   OutputJobV3Dto,
   OutputDatasetObsoleteDto,
   ProposalClass,
   PublishedData,
-  SampleClass,
+  OutputSampleDto,
   Logbook,
   Policy,
   ReturnedUserDto,
@@ -130,6 +129,13 @@ export class MockDatasetApi {
     return of([]);
   }
 
+  datasetsControllerFindByIdAndUpdateV3(
+    pid: string,
+    body: Record<string, unknown>,
+  ) {
+    return of(null);
+  }
+
   datasetsControllerCountV3(data?: any) {
     return of(0);
   }
@@ -155,6 +161,10 @@ export class MockActivatedRoute {
   queryParams = of([{ limit: 10 }]);
   url = of([]);
   children = [];
+}
+
+export class MockDatasetsListService {
+  destroy() {}
 }
 
 export class MockRouter {
@@ -240,7 +250,7 @@ export class MockPublishedDataApi {
     ]);
   }
 
-  publishedDataControllerFormPopulateV3() {
+  publishedDataV4ControllerFormPopulateV4() {
     return of({});
   }
 }
@@ -266,8 +276,9 @@ export class MockScicatDataSource extends SciCatDataSource {
 
 export class MockDatafilesActionsComponent {
   actionsConfig: ActionConfig[];
-  dataset: ActionDataset;
+  actionItems: ActionItems;
   files: DataFiles_File[];
+  visible: boolean;
 }
 
 export class MockHtmlElement {
@@ -328,7 +339,7 @@ export function createMock<T>(data?: Partial<T>): T {
 
 export const mockDataset = createMock<OutputDatasetObsoleteDto>({});
 export const mockAttachment = createMock<OutputAttachmentV3Dto>({});
-export const mockSample = createMock<SampleClass>({});
+export const mockSample = createMock<OutputSampleDto>({});
 export const mockProposal = createMock<ProposalClass>({});
 export const mockInstrument = createMock<Instrument>({});
 export const mockOrigDatablock = createMock<OrigDatablock>({});

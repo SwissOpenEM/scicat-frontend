@@ -23,13 +23,24 @@ const reducer = createReducer(
     }),
   ),
 
+  on(fromActions.fetchSamplesCountAction, (state): SampleState => ({
+    ...state,
+    samplesCountIsLoading: true,
+  })),
+
   on(
     fromActions.fetchSamplesCountCompleteAction,
     (state, { count }): SampleState => ({
       ...state,
       samplesCount: count,
+      samplesCountIsLoading: false,
     }),
   ),
+
+  on(fromActions.fetchSamplesCountFailedAction, (state): SampleState => ({
+    ...state,
+    samplesCountIsLoading: false,
+  })),
 
   on(
     fromActions.fetchMetadataKeysCompleteAction,
@@ -52,9 +63,26 @@ const reducer = createReducer(
     }),
   ),
 
+  on(fromActions.fetchSampleDatasetsCountAction, (state): SampleState => ({
+    ...state,
+    datasetsCountIsLoading: true,
+  })),
+
   on(
     fromActions.fetchSampleDatasetsCountCompleteAction,
-    (state, { count }): SampleState => ({ ...state, datasetsCount: count }),
+    (state, { count }): SampleState => ({
+      ...state,
+      datasetsCount: count,
+      datasetsCountIsLoading: false,
+    }),
+  ),
+
+  on(
+    fromActions.fetchSampleDatasetsCountFailedAction,
+    (state): SampleState => ({
+      ...state,
+      datasetsCountIsLoading: false,
+    }),
   ),
 
   on(fromActions.addSampleCompleteAction, (state, { sample }): SampleState => {
@@ -141,13 +169,10 @@ const reducer = createReducer(
     return { ...state, sampleFilters, hasPrefilledFilters: true };
   }),
 
-  on(
-    fromActions.setTextFilterAction,
-    (state, { text }): SampleState => ({
-      ...state,
-      sampleFilters: { ...state.sampleFilters, text },
-    }),
-  ),
+  on(fromActions.setTextFilterAction, (state, { text }): SampleState => ({
+    ...state,
+    sampleFilters: { ...state.sampleFilters, text },
+  })),
 
   on(
     fromActions.addCharacteristicsFilterAction,
@@ -164,10 +189,11 @@ const reducer = createReducer(
 
   on(
     fromActions.removeCharacteristicsFilterAction,
-    (state, { index }): SampleState => {
+    (state, { lhs }): SampleState => {
       const currentFilters = state.sampleFilters;
-      const characteristics = [...currentFilters.characteristics];
-      characteristics.splice(index, 1);
+      const characteristics = currentFilters.characteristics.filter(
+        (c) => c.lhs !== lhs,
+      );
       const sampleFilters = { ...currentFilters, characteristics };
       return { ...state, sampleFilters };
     },

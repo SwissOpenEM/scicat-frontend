@@ -23,9 +23,13 @@ import { JsonFormsAngularMaterialModule } from "@jsonforms/angular-material";
 import { JsonFormsCustomRenderersModule } from "./modules/jsonforms-custom-renderers/jsonforms-custom-renderers.module";
 import { FullTextSearchBarModule } from "./modules/full-text-search-bar/full-text-search-bar.module";
 import { SharedFilterModule } from "./modules/shared-filter/shared-filter.module";
+import { ConfigurableActionsModule } from "./modules/configurable-actions/configurable-actions.module";
 import { NgxNumericRangeFormFieldModule } from "./modules/numeric-range/ngx-numeric-range-form-field.module";
 import { EmptyContentModule } from "./modules/generic-empty-content/empty-content.module";
 import { JsonformsAccordionRendererService } from "./services/jsonforms-accordion-renderer.service";
+import { JsonPreviewDialogModule } from "./modules/json-preview-dialog/json-preview-dialog.module";
+import { DatasetsListService } from "./services/datasets-list.service";
+import { AjvService } from "./services/ajv.service";
 @NgModule({
   imports: [
     BreadcrumbModule,
@@ -45,11 +49,13 @@ import { JsonformsAccordionRendererService } from "./services/jsonforms-accordio
     SharedTableModule,
     ScientificMetadataTreeModule,
     DynamicMatTableModule.forRoot({}),
+    ConfigurableActionsModule,
     NgxNumericRangeFormFieldModule,
     EmptyContentModule,
     JsonFormsModule,
     JsonFormsAngularMaterialModule,
     JsonFormsCustomRenderersModule,
+    JsonPreviewDialogModule,
     SharedFilterModule,
   ],
   providers: [
@@ -59,6 +65,8 @@ import { JsonformsAccordionRendererService } from "./services/jsonforms-accordio
     ScicatDataService,
     AttachmentService,
     JsonformsAccordionRendererService,
+    DatasetsListService,
+    AjvService,
   ],
   exports: [
     BreadcrumbModule,
@@ -81,6 +89,7 @@ import { JsonformsAccordionRendererService } from "./services/jsonforms-accordio
     JsonFormsAngularMaterialModule,
     JsonFormsCustomRenderersModule,
     SharedFilterModule,
+    ConfigurableActionsModule,
   ],
 })
 export class SharedScicatFrontendModule {}

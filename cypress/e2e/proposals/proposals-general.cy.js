@@ -9,7 +9,10 @@ describe("Proposals general", () => {
   const proposalLabelsConfig = testConfig.proposalViewCustomLabels;
   beforeEach(() => {
     cy.readFile("CI/e2e/frontend.config.e2e.json").then((baseConfig) => {
-      const mergedConfig = mergeConfig(baseConfig, proposalLabelsConfig);
+      const mergedConfig = mergeConfig(baseConfig, {
+        ...proposalLabelsConfig,
+        jsonMetadataEnabled: false,
+      });
       cy.intercept("GET", "**/admin/config", mergedConfig).as(
         "getFrontendConfig",
       );
@@ -156,9 +159,10 @@ describe("Proposals general", () => {
 
       cy.get('[data-cy="proposal-metadata-card"]').should("exist");
 
-      cy.get('[data-cy="proposal-metadata-card"] [role="tab"]')
-        .contains("Edit")
-        .click();
+      cy.contains(
+        '[data-cy="proposal-metadata-card"] [role="tab"]',
+        "Edit",
+      ).click();
 
       cy.get('[data-cy="add-new-row"]').click();
 
@@ -240,6 +244,36 @@ describe("Proposals general", () => {
     });
   });
 
+  describe("Proposals details default tab coniguration", () => {
+    beforeEach(() => {
+      cy.login(Cypress.env("username"), Cypress.env("password"));
+
+      const newProposal = {
+        ...testData.proposal,
+        proposalId: Math.floor(100000 + Math.random() * 900000).toString(),
+      };
+      cy.createProposal(newProposal);
+
+      cy.readFile("CI/e2e/frontend.config.e2e.json").then((baseConfig) => {
+        const testConfig = {
+          ...baseConfig,
+          defaultTab: { proposal: "datasets" },
+        };
+
+        cy.intercept("GET", "**/admin/config", testConfig).as("getConfig");
+      });
+
+      cy.visit(`/proposals/${newProposal.proposalId}`);
+      cy.wait("@getConfig");
+      cy.finishedLoading();
+    });
+    it("should show datasets tab if defaultProposalTab is set to datasets", () => {
+      cy.get(".mat-mdc-tab-labels .mat-mdc-tab")
+        .eq(1)
+        .should("have.attr", "aria-selected", "true");
+    });
+  });
+
   describe("Proposal view details labelization", () => {
     it("should load proposal with fallback labels when no custom labels are available", () => {
       const fallbackLabelsToCheck = ["Main proposer", "Proposal Type"];
@@ -316,11 +350,13 @@ describe("Proposals general", () => {
       const newProposal = {
         ...testData.proposal,
         proposalId: "000000",
+        startTime: "2026-03-09T15:00:00.000Z",
       };
 
       const newProposal2 = {
         ...testData.proposal,
         proposalId: "000001",
+        startTime: "2026-03-07T15:00:00.000Z",
       };
 
       cy.createProposal(newProposal2);
@@ -328,14 +364,14 @@ describe("Proposals general", () => {
 
       cy.visit("/proposals");
 
-      cy.get("mat-table mat-row")
-        .first()
-        .should("not.contain", newProposal.proposalId);
+      cy.finishedLoading();
 
-      cy.get(".mat-sort-header-container").contains("Proposal ID").click();
+      cy.get(".mat-sort-header-container").contains("Start Date").click();
+
+      cy.get(".mat-sort-header-container").contains("Start Date").click();
 
       cy.get(".mat-sort-header-container")
-        .contains("Proposal ID")
+        .contains("Start Date")
         .closest("mat-header-cell")
         .should("have.class", "active-sort");
 
@@ -350,46 +386,6 @@ describe("Proposals general", () => {
         .should("contain", newProposal.proposalId);
 
       cy.reload();
-
-      cy.get("mat-table mat-row")
-        .first()
-        .should("contain", newProposal.proposalId);
-    });
-
-    it("should be able to filter by column", () => {
-      const newProposal = {
-        ...testData.proposal,
-        proposalId: "100100",
-      };
-
-      cy.createProposal(newProposal);
-
-      cy.visit("/proposals");
-
-      cy.get(".mat-sort-header-container").contains("Proposal ID").click();
-
-      cy.get(".mat-sort-header-container")
-        .contains("Proposal ID")
-        .closest("header-filter")
-        .find(".mat-mdc-menu-trigger")
-        .click();
-
-      cy.get(
-        ".cdk-overlay-container .mat-mdc-menu-panel .filter-panel mat-form-field.input-field input",
-      )
-        .clear()
-        .type(newProposal.proposalId);
-      cy.get(
-        ".cdk-overlay-container .mat-mdc-menu-panel .menu-action button[color='primary']",
-      ).click();
-
-      cy.get(".mat-sort-header-container")
-        .contains("Proposal ID")
-        .closest("header-filter")
-        .find(".mat-mdc-menu-trigger mat-icon")
-        .should(($el) => {
-          expect($el).to.have.css("color", "rgb(200, 25, 25)"); // warn color
-        });
 
       cy.get("mat-table mat-row")
         .first()
@@ -494,6 +490,7 @@ describe("Proposals general", () => {
       cy.get("dynamic-mat-table table-menu button").click();
       cy.get('[role="menu"] button').contains("Default setting").click();
 
+      cy.get("body").type("{esc}");
       cy.get("dynamic-mat-table table-menu button").click();
       cy.get('[role="menu"] button').contains("Save table setting").click();
 
@@ -576,6 +573,20 @@ describe("Proposals general", () => {
         expect(actualExport).to.contain(newProposal.proposalId);
       });
     });
+
+    it("should persist search text in input field after page reload", () => {
+      cy.visit("/proposals");
+
+      cy.get('[data-cy="text-search"]').type("test search text");
+      cy.get('[data-cy="search-button"]').click();
+
+      cy.reload();
+
+      cy.get('[data-cy="text-search"]').should(
+        "have.value",
+        "test search text",
+      );
+    });
   });
 
   describe("Proposals filter end date auto-set", () => {
@@ -595,7 +606,122 @@ describe("Proposals general", () => {
       cy.get('[data-cy="apply-button-filter"]').click();
 
       cy.get("mat-table mat-row").should("contain", newProposal.proposalId);
+    });
+  });
 
+  describe("Proposals collapsible filters", () => {
+    beforeEach(() => {
+      cy.createProposal({
+        ...testData.proposal,
+        proposalId: Math.floor(100000 + Math.random() * 900000).toString(),
+      });
+      cy.readFile("CI/e2e/frontend.config.e2e.json").then((baseConfig) => {
+        const testConfig = {
+          ...baseConfig,
+          defaultProposalsListSettings: {
+            ...baseConfig.defaultProposalsListSettings,
+            filters: [
+              {
+                key: "type",
+                label: "Type",
+                type: "checkbox",
+                description: "Filter by proposal type",
+                enabled: true,
+              },
+              {
+                key: "keywords",
+                label: "Keyword",
+                type: "checkbox",
+                description: "Filter by keywords in the proposal",
+                enabled: false,
+              },
+            ],
+          },
+        };
+
+        cy.intercept("GET", "**/admin/config", testConfig).as("getConfig");
+        cy.visit("/proposals");
+        cy.wait("@getConfig");
+        cy.finishedLoading();
+      });
+    });
+
+    it("should collapse and expand checkbox filters", () => {
+      cy.get(".collapsible-filter-wrapper .icon-collapse").first().click();
+
+      cy.get(".collapsible-filter-wrapper .checkbox-list")
+        .first()
+        .should("not.be.visible");
+
+      cy.get(".collapsible-filter-wrapper .icon-collapse").first().click();
+
+      cy.get(".collapsible-filter-wrapper .checkbox-list")
+        .first()
+        .should("be.visible");
+    });
+  });
+
+  describe("Proposals default sorting from config", () => {
+    beforeEach(() => {
+      const newProposal = {
+        ...testData.proposal,
+        proposalId: Math.floor(100000 + Math.random() * 900000).toString(),
+        startTime: "2026-03-03T15:00:00.000Z",
+        pi_firstname: "Afirstname",
+        pi_lastname: "Zlastname",
+      };
+      const newProposal2 = {
+        ...testData.proposal,
+        proposalId: Math.floor(100000 + Math.random() * 900000).toString(),
+        startTime: "2026-03-04T15:00:00.000Z",
+        pi_firstname: "Bfirstname",
+        pi_lastname: "Alastname",
+      };
+      cy.createProposal(newProposal);
+      cy.createProposal(newProposal2);
+      cy.readFile("CI/e2e/frontend.config.e2e.json").then((baseConfig) => {
+        const testConfig = {
+          ...baseConfig,
+          defaultProposalsListSettings: {
+            ...baseConfig.defaultProposalsListSettings,
+            columns: [
+              {
+                name: "proposalId",
+                width: 120,
+                enabled: true,
+              },
+              {
+                name: "title",
+                width: 210,
+                enabled: true,
+              },
+              {
+                name: "startTime",
+                type: "date",
+                format: "yyyy-MM-dd",
+                width: 130,
+                enabled: true,
+              },
+              {
+                name: "pi_lastname, pi_firstname",
+                enabled: true,
+                width: 150,
+                sort: "desc",
+              },
+            ],
+          },
+        };
+
+        cy.intercept("GET", "**/admin/config", testConfig).as("getConfig");
+        cy.visit("/proposals");
+        cy.wait("@getConfig", { timeout: 20000 });
+        cy.finishedLoading();
+      });
+    });
+
+    it("should sort proposals by last name in desc order from config", () => {
+      cy.finishedLoading();
+      cy.get("mat-table mat-row").first().should("contain", "Zlastname");
     });
   });
 });

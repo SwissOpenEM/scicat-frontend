@@ -55,11 +55,13 @@ export const testData = {
   },
   proposal: {
     proposalId: "20170266",
+    pi_email: "pi@uni.edu",
     email: "proposer@uni.edu",
     title: "Cypress minimal test proposal",
     abstract: "Abstract of test proposal",
     ownerGroup: "20170251-group",
     accessGroups: [],
+    type: "Default Proposal",
   },
   instrument: {
     uniqueName: "ESS1-1",
@@ -69,6 +71,22 @@ export const testData = {
       department: "An immaginary department #1",
       main_user: "ESS",
     },
+  },
+  sample: {
+    sampleName: "Cypress Sample",
+    ownerGroup: "ess",
+    accessGroups: ["string"],
+    instrumentGroup: "string",
+    sampleId: "string",
+    owner: "string",
+    description: "Cypress Sample",
+    type: "string",
+    proposalId: "cypress",
+    parentSampleId: "string",
+    sampleCharacteristics: {
+      test_characteristic: { type: "number", value: 10, unit: "" },
+    },
+    isPublished: false,
   },
   rawDataset: {
     principalInvestigator: "string",
@@ -156,6 +174,11 @@ export const testData = {
         perm: "-rw-rw-r--",
       },
     ],
+  },
+  job: {
+    contactEmail: "test@example.com",
+    type: "ui_test",
+    jobParams: {},
   },
 };
 
@@ -340,4 +363,65 @@ export const testConfig = {
       conditions: [],
     },
   },
+  helpSettings: {
+    disabled: {
+      helpSettings: {
+        enabled: false,
+      },
+    },
+    enabledWithCustomText: {
+      helpSettings: {
+        enabled: true,
+        htmlContent:
+          '<p class="scicat_e2e_test">SciCat E2E Test Help Content</p>',
+      },
+    },
+    enabledWithDefaultText: {
+      helpSettings: {
+        enabled: true,
+        htmlContent: "",
+      },
+    },
+  },
+  aboutSettings: {
+    disabled: {
+      aboutSettings: {
+        enabled: false,
+      },
+    },
+    enabledWithCustomText: {
+      aboutSettings: {
+        enabled: true,
+        htmlContent:
+          '<p class="scicat_e2e_test">SciCat E2E Test About Content</p>',
+      },
+    },
+    enabledWithDefaultText: {
+      aboutSettings: {
+        enabled: true,
+        htmlContent: "",
+      },
+    },
+  },
 };
+
+export const defaultDatasetsColumnsList = [
+  "PID",
+  "Dataset Name",
+  "Run Number",
+  "Size",
+  "Creation Time",
+  "Image",
+  "Proposal Id",
+];
+
+export const personalizedDatasetsColumnsList = [
+  "PID",
+  "Dataset Name",
+  "Run Number",
+  "Size",
+  "Creation Time",
+  "Proposal Id",
+  "Start Time",
+  "End Time",
+];

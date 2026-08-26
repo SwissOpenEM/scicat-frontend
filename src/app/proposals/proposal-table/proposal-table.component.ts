@@ -1,4 +1,11 @@
-import { Component, Input, OnDestroy, OnInit } from "@angular/core";
+import {
+  Component,
+  Input,
+  Output,
+  OnDestroy,
+  OnInit,
+  EventEmitter,
+} from "@angular/core";
 import { BehaviorSubject, combineLatestWith, filter, Subscription } from "rxjs";
 import { TableField } from "shared/modules/dynamic-material-table/models/table-field.model";
 import {
@@ -20,10 +27,10 @@ import { Store } from "@ngrx/store";
 import {
   selectProposalsWithCountAndTableSettings,
   selectDefaultProposalColumns,
+  selectProposalsFacetCountsIsLoading,
 } from "state-management/selectors/proposals.selectors";
 import { ActivatedRoute, Router } from "@angular/router";
 import {
-  Instrument,
   OutputDatasetObsoleteDto,
   ProposalClass,
 } from "@scicatproject/scicat-sdk-ts-angular";
@@ -33,7 +40,7 @@ import { actionMenu } from "shared/modules/dynamic-material-table/utilizes/defau
 import { TableConfigService } from "shared/services/table-config.service";
 import { AppConfigService } from "app-config.service";
 import { TableColumn } from "state-management/models";
-
+import { addProposalFilterAction } from "state-management/actions/proposals.actions";
 @Component({
   selector: "proposal-table",
   templateUrl: "./proposal-table.component.html",
@@ -47,6 +54,9 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
     selectProposalsWithCountAndTableSettings,
   );
   defaultStoreColumns$ = this.store.select(selectDefaultProposalColumns);
+  isFacetCountsLoading$ = this.store.select(
+    selectProposalsFacetCountsIsLoading,
+  );
   appConfig = this.appConfigService.getConfig();
 
   tableDefaultSettingsConfig: ITableSetting = {
@@ -88,12 +98,17 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
 
   datasets: OutputDatasetObsoleteDto[] = [];
 
+  @Input() sideFilterCollapsed = false;
+
   @Input()
   dataSource!: BehaviorSubject<ProposalClass[]>;
 
   @Input()
   defaultPageSize: number;
 
+  @Output() textSearch = new EventEmitter<string>();
+
+  globalTextSearch = "";
   constructor(
     private appConfigService: AppConfigService,
     private store: Store,
@@ -106,43 +121,38 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.proposalsWithCountAndTableSettings$
         .pipe(
-          combineLatestWith(this.defaultStoreColumns$),
-          filter(([{ hasFetchedSettings }]) => hasFetchedSettings),
+          filter(({ hasFetchedSettings }) => hasFetchedSettings),
+          combineLatestWith(this.isFacetCountsLoading$),
         )
         .subscribe(
           async ([
             { proposals, count, tablesSettings },
-            defaultStoreColumns,
+            isFacetCountsLoading,
           ]) => {
-            const userSettingColumns =
-              tablesSettings?.[this.tableName]?.columns || [];
-
             this.dataSource.next(proposals);
             this.pending = false;
 
-            // Checks if there are any custom columns defined in the app config
-            // If it's defined and not empty, use it as the effective columns
-            // Otherwise use the default columns from the proposals store
-            const configColumns =
+            const defaultConfigColumns =
               this.appConfig?.defaultProposalsListSettings?.columns;
-            const defaultColumns =
-              Array.isArray(configColumns) && configColumns.length > 0
-                ? configColumns
-                : defaultStoreColumns;
 
-            const savedTableConfigColumns =
-              this.convertSavedColumns(userSettingColumns);
+            const userConfigColumns = tablesSettings?.columns || [];
+
+            const userTableConfigColumns =
+              this.convertSavedColumns(userConfigColumns);
 
             this.tableDefaultSettingsConfig.settingList[0].columnSetting =
-              this.convertSavedColumns(defaultColumns as TableColumn[]);
+              this.convertSavedColumns(defaultConfigColumns as TableColumn[]);
 
             const tableSort = this.getTableSort();
-            const paginationConfig = this.getTablePaginationConfig(count);
+            const paginationConfig = this.getTablePaginationConfig(
+              count,
+              isFacetCountsLoading,
+            );
             const tableSettingsConfig =
               this.tableConfigService.getTableSettingsConfig(
                 this.tableName,
                 this.tableDefaultSettingsConfig,
-                savedTableConfigColumns,
+                userTableConfigColumns,
                 tableSort,
               );
 
@@ -151,6 +161,13 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
             }
           },
         ),
+    );
+
+    this.subscriptions.push(
+      this.route.queryParams.subscribe((queryParams) => {
+        const searchQuery = JSON.parse(queryParams.searchQuery || "{}");
+        this.globalTextSearch = searchQuery.text || "";
+      }),
     );
   }
 
@@ -167,7 +184,7 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  getTablePaginationConfig(dataCount = 0): TablePagination {
+  getTablePaginationConfig(dataCount = 0, isLoading = false): TablePagination {
     const { queryParams } = this.route.snapshot;
 
     return {
@@ -175,6 +192,7 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
       pageIndex: queryParams.pageIndex,
       pageSize: queryParams.pageSize || this.defaultPageSize,
       length: dataCount,
+      isLoading,
     };
   }
 
@@ -206,16 +224,6 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
       const id = encodeURIComponent(event.sender.row!.proposalId);
       this.router.navigateByUrl(`/proposals/${id}`);
     }
-  }
-
-  onGlobalTextSearchChange(text: string) {
-    this.router.navigate([], {
-      queryParams: {
-        textSearch: text || undefined,
-        pageIndex: 0,
-      },
-      queryParamsHandling: "merge",
-    });
   }
 
   convertSavedColumns(columns: TableColumn[]): TableField<any>[] {
@@ -253,17 +261,10 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
       };
     });
 
-    const tablesSettings = {
-      ...this.tablesSettings,
-      [setting.settingName || this.tableName]: {
-        columns: columnsSetting,
-      },
-    };
-
     this.store.dispatch(
       updateUserSettingsAction({
         property: {
-          tablesSettings,
+          fe_proposal_table_columns: columnsSetting,
         },
       }),
     );
@@ -277,7 +278,8 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
   }) {
     if (
       event.type === TableSettingEventType.save ||
-      event.type === TableSettingEventType.create
+      event.type === TableSettingEventType.create ||
+      event.type === TableSettingEventType.reset
     ) {
       this.saveTableSettings(event.setting);
     }
@@ -296,6 +298,43 @@ export class ProposalTableComponent implements OnInit, OnDestroy {
         queryParamsHandling: "merge",
       });
     }
+  }
+
+  onGlobalTextSearchChange(term: string) {
+    this.globalTextSearch = term;
+  }
+
+  getTextSearchParam() {
+    const { queryParams } = this.route.snapshot;
+    const searchQuery = JSON.parse(queryParams.searchQuery || "{}");
+
+    return searchQuery.text;
+  }
+
+  onGlobalTextSearchAction() {
+    const { queryParams } = this.route.snapshot;
+    const searchQuery = JSON.parse(queryParams.searchQuery || "{}");
+    this.router.navigate([], {
+      queryParams: {
+        searchQuery: JSON.stringify({
+          ...searchQuery,
+          text: this.globalTextSearch || undefined,
+        }),
+        pageIndex: 0,
+      },
+      queryParamsHandling: "merge",
+    });
+    this.store.dispatch(
+      addProposalFilterAction({
+        key: "text",
+        value: this.globalTextSearch || undefined,
+        filterType: "text",
+      }),
+    );
+  }
+
+  onSideFilterCollapsedChange(collapsed: boolean) {
+    this.sideFilterCollapsed = collapsed;
   }
 
   ngOnDestroy() {

@@ -15,6 +15,7 @@ const initialInstrumentState: InstrumentState = {
   instruments: [],
   currentInstrument: instrument,
   totalCount: 0,
+  instrumentsCountIsLoading: false,
 
   filters: instrumentFilters,
 };
@@ -81,12 +82,18 @@ describe("Instrument Selectors", () => {
           fromSelectors.selectInstrumentsCount.projector(
             initialInstrumentState,
           ),
-          fromUserSelectors.selectTablesSettings.projector(initialUserState),
+          fromSelectors.selectInstrumentsCountIsLoading.projector(
+            initialInstrumentState,
+          ),
+          fromUserSelectors.selectSettings.projector(initialUserState),
         ),
       ).toEqual({
         instruments: [],
         count: 0,
-        tablesSettings: {},
+        isLoading: false,
+        tablesSettings: {
+          columns: initialUserState.settings.fe_instrument_table_columns,
+        },
       });
     });
 

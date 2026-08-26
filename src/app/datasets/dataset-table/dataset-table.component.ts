@@ -4,12 +4,18 @@ import {
   OnInit,
   Output,
   EventEmitter,
-  Input,
   ViewEncapsulation,
+  ViewChild,
 } from "@angular/core";
 import { TableColumn } from "state-management/models";
 import { MatCheckboxChange } from "@angular/material/checkbox";
-import { BehaviorSubject, Subscription, lastValueFrom, take } from "rxjs";
+import {
+  BehaviorSubject,
+  Subscription,
+  combineLatest,
+  combineLatestWith,
+  filter,
+} from "rxjs";
 import { Store } from "@ngrx/store";
 import {
   clearSelectionAction,
@@ -17,6 +23,10 @@ import {
   deselectDatasetAction,
   selectAllDatasetsAction,
   sortByColumnAction,
+  setSearchTermsAction,
+  setTextFilterAction,
+  fetchFacetCountsAction,
+  fetchDatasetsAction,
 } from "state-management/actions/datasets.actions";
 import { fetchInstrumentsAction } from "state-management/actions/instruments.actions";
 
@@ -25,16 +35,17 @@ import {
   selectDatasetsPerPage,
   selectPage,
   selectTotalSets,
+  selectSelectedDatasets,
   selectDatasetsInBatch,
+  selectDatasetsFacetCountsIsLoading,
+  selectTextFilter,
 } from "state-management/selectors/datasets.selectors";
-import { get as lodashGet } from "lodash-es";
 import { AppConfigService } from "app-config.service";
 import {
   selectColumnsWithHasFetchedSettings,
   selectCurrentUser,
 } from "state-management/selectors/user.selectors";
 import {
-  DatasetClass,
   OutputDatasetObsoleteDto,
   Instrument,
 } from "@scicatproject/scicat-sdk-ts-angular";
@@ -57,12 +68,13 @@ import {
 import { updateUserSettingsAction } from "state-management/actions/user.actions";
 import { Sort } from "@angular/material/sort";
 import { ActivatedRoute } from "@angular/router";
-import { JsonHeadPipe } from "shared/pipes/json-head.pipe";
-import { DatePipe } from "@angular/common";
-import { FileSizePipe } from "shared/pipes/filesize.pipe";
 import { actionMenu } from "shared/modules/dynamic-material-table/utilizes/default-table-settings";
 import { TableConfigService } from "shared/services/table-config.service";
 import { selectInstruments } from "state-management/selectors/instruments.selectors";
+import { DatasetsListService } from "shared/services/datasets-list.service";
+import { DatasetInlineEditCellComponent } from "./dataset-inline-edit-cell.component";
+import { Router } from "@angular/router";
+import { DynamicMatTableComponent } from "shared/modules/dynamic-material-table/table/dynamic-mat-table.component";
 
 export interface SortChangeEvent {
   active: string;
@@ -78,8 +90,11 @@ export interface SortChangeEvent {
 })
 export class DatasetTableComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
-  selectionIds: string[] = [];
 
+  @ViewChild("datasetTable")
+  datasetTable: DynamicMatTableComponent<OutputDatasetObsoleteDto>;
+
+  selectionIds: string[] = [];
   appConfig = this.appConfigService.getConfig();
   currentPage$ = this.store.select(selectPage);
   datasetsPerPage$ = this.store.select(selectDatasetsPerPage);
@@ -87,12 +102,13 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
   currentUser$ = this.store.select(selectCurrentUser);
   datasets$ = this.store.select(selectDatasets);
   selectedDatasets$ = this.store.select(selectDatasetsInBatch);
+  selectedRows$ = this.store.select(selectSelectedDatasets);
   selectColumnsWithFetchedSettings$ = this.store.select(
     selectColumnsWithHasFetchedSettings,
   );
+  isFacetCountsLoading$ = this.store.select(selectDatasetsFacetCountsIsLoading);
   instruments$ = this.store.select(selectInstruments);
 
-  @Input() selectedSets: OutputDatasetObsoleteDto[] | null = null;
   @Output() pageChange = new EventEmitter<{
     pageIndex: number;
     pageSize: number;
@@ -103,6 +119,7 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
   instrumentMap: Map<string, Instrument> = new Map();
 
   @Output() rowClick = new EventEmitter<OutputDatasetObsoleteDto>();
+  @Output() textSearch = new EventEmitter<string>();
 
   tableDefaultSettingsConfig: ITableSetting = {
     visibleActionMenu: actionMenu,
@@ -143,29 +160,32 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
 
   defaultPageSize = 10;
 
-  defaultPageSizeOptions = [5, 10, 25, 100];
+  defaultPageSizeOptions = this.appConfig.datasetPageSizeOptions;
 
   tablesSettings: object;
+
+  globalTextSearch = "";
 
   constructor(
     public appConfigService: AppConfigService,
     private store: Store,
     private route: ActivatedRoute,
-    private jsonHeadPipe: JsonHeadPipe,
-    private datePipe: DatePipe,
-    private fileSize: FileSizePipe,
     private tableConfigService: TableConfigService,
+    private datasetsListService: DatasetsListService,
+    private router: Router,
   ) {}
 
-  private getInstrumentName(row: OutputDatasetObsoleteDto): string {
-    const instrument = this.instrumentMap.get(row.instrumentId);
-    if (instrument?.name) {
-      return instrument.name;
-    }
-    if (row.instrumentId != null) {
-      return row.instrumentId === "" ? "-" : row.instrumentId;
-    }
-    return "-";
+  private decorateColumns(columns: TableField<any>[] = []): TableField<any>[] {
+    return columns.map((column) => {
+      if (column.type !== "editable") {
+        return column;
+      }
+
+      return {
+        ...column,
+        dynamicCellComponent: DatasetInlineEditCellComponent,
+      };
+    });
   }
 
   getTableSort(): ITableSetting["tableSort"] {
@@ -181,7 +201,7 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  getTablePaginationConfig(dataCount = 0): TablePagination {
+  getTablePaginationConfig(dataCount = 0, isLoading = false): TablePagination {
     const { queryParams } = this.route.snapshot;
 
     const { skip = 0, limit = 25 } = JSON.parse(queryParams.args ?? "{}");
@@ -191,6 +211,7 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
       pageIndex: skip / limit || 0,
       pageSize: limit || this.defaultPageSize,
       length: dataCount,
+      isLoading,
     };
   }
 
@@ -206,7 +227,7 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
       currentColumnSetting = settingConfig.settingList[0].columnSetting;
     }
 
-    this.columns = currentColumnSetting;
+    this.columns = this.decorateColumns(currentColumnSetting);
     this.setting = settingConfig;
     this.pagination = paginationConfig;
   }
@@ -214,21 +235,26 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
   saveTableSettings(setting: ITableSetting) {
     this.pending = true;
     const columnsSetting = setting.columnSetting.map((column, index) => {
-      const { name, display, width, type, format } = column;
+      const { name, header, display, width, type, format, path, tooltip } =
+        column;
 
       return {
         name,
+        header,
         enabled: !!(display === "visible"),
         order: index,
         width,
+        path,
+        userAdded: column.userAdded || undefined,
         type,
         format,
+        tooltip,
       };
     });
     this.store.dispatch(
       updateUserSettingsAction({
         property: {
-          columns: columnsSetting,
+          fe_dataset_table_columns: columnsSetting,
         },
       }),
     );
@@ -242,7 +268,8 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
   }) {
     if (
       event.type === TableSettingEventType.save ||
-      event.type === TableSettingEventType.create
+      event.type === TableSettingEventType.create ||
+      event.type === TableSettingEventType.reset
     ) {
       this.saveTableSettings(event.setting);
     }
@@ -285,68 +312,6 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
     });
   }
 
-  // conditional to asses dataset status and assign correct icon ArchViewMode.work_in_progress
-  // TODO: when these concepts stabilise, we should move the definitions to site config
-  wipCondition(dataset: DatasetClass): boolean {
-    if (
-      !dataset.datasetlifecycle.archivable &&
-      !dataset.datasetlifecycle.retrievable &&
-      dataset.datasetlifecycle.archiveStatusMessage !==
-        "scheduleArchiveJobFailed" &&
-      dataset.datasetlifecycle.retrieveStatusMessage !==
-        "scheduleRetrieveJobFailed"
-    ) {
-      return true;
-    }
-    return false;
-  }
-
-  systemErrorCondition(dataset: DatasetClass): boolean {
-    if (
-      (dataset.datasetlifecycle.retrievable &&
-        dataset.datasetlifecycle.archivable) ||
-      dataset.datasetlifecycle.archiveStatusMessage ===
-        "scheduleArchiveJobFailed" ||
-      dataset.datasetlifecycle.retrieveStatusMessage ===
-        "scheduleRetrieveJobFailed"
-    ) {
-      return true;
-    }
-    return false;
-  }
-
-  userErrorCondition(dataset: DatasetClass): boolean {
-    if (dataset.datasetlifecycle.archiveStatusMessage === "missingFilesError") {
-      return true;
-    }
-    return false;
-  }
-
-  archivableCondition(dataset: DatasetClass): boolean {
-    if (
-      dataset.datasetlifecycle.archivable &&
-      !dataset.datasetlifecycle.retrievable &&
-      dataset.datasetlifecycle.archiveStatusMessage !== "missingFilesError"
-    ) {
-      return true;
-    }
-    return false;
-  }
-
-  retrievableCondition(dataset: DatasetClass): boolean {
-    if (
-      !dataset.datasetlifecycle.archivable &&
-      dataset.datasetlifecycle.retrievable
-    ) {
-      return true;
-    }
-    return false;
-  }
-
-  // isInBatch(dataset: DatasetClass): boolean {
-  //   return this.inBatchPids.indexOf(dataset.pid) !== -1;
-  // }
-
   onSelect(event: MatCheckboxChange, dataset: OutputDatasetObsoleteDto): void {
     if (event.checked) {
       this.store.dispatch(selectDatasetAction({ dataset }));
@@ -369,122 +334,6 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
     this.store.dispatch(sortByColumnAction({ column, direction }));
   }
 
-  convertSavedColumns(columns: TableColumn[]): TableField<any>[] {
-    return columns
-      .filter((column) => column.name !== "select")
-      .map((column) => {
-        const convertedColumn: TableField<any> = {
-          name: column.name,
-          header: column.header,
-          index: column.order,
-          display: column.enabled ? "visible" : "hidden",
-          width: column.width,
-          type: column.type,
-          format: column.format,
-          tooltip: column.tooltip,
-        };
-
-        // NOTE: This is how we render the custom columns if new config is used.
-        if (column.type === "custom") {
-          convertedColumn.customRender = (c, row) =>
-            lodashGet(row, column.path || column.name);
-          convertedColumn.toExport = (row) =>
-            lodashGet(row, column.path || column.name);
-        }
-
-        if (column.name === "size") {
-          convertedColumn.customRender = (column, row) =>
-            this.fileSize.transform(row[column.name]);
-          convertedColumn.toExport = (row) =>
-            this.fileSize.transform(row[column.name]);
-        }
-
-        if (column.name === "creationTime") {
-          convertedColumn.customRender = (column, row) =>
-            this.datePipe.transform(row[column.name]);
-          convertedColumn.toExport = (row) =>
-            this.datePipe.transform(row[column.name]);
-        }
-
-        if (
-          column.name === "metadata" ||
-          column.name === "scientificMetadata"
-        ) {
-          convertedColumn.customRender = (column, row) => {
-            // NOTE: Maybe here we should use the "scientificMetadata" as field name and not "metadata". This should be changed in the backend config.
-            return this.jsonHeadPipe.transform(row["scientificMetadata"]);
-          };
-          convertedColumn.toExport = (row) => {
-            return this.jsonHeadPipe.transform(row["scientificMetadata"]);
-          };
-        }
-
-        if (column.name === "dataStatus") {
-          convertedColumn.renderContentIcon = (column, row) => {
-            if (this.wipCondition(row)) {
-              return "hourglass_empty";
-            } else if (this.archivableCondition(row)) {
-              return "archive";
-            } else if (this.retrievableCondition(row)) {
-              return "archive";
-            } else if (this.systemErrorCondition(row)) {
-              return "error_outline";
-            } else if (this.userErrorCondition(row)) {
-              return "error_outline";
-            }
-
-            return "";
-          };
-
-          convertedColumn.customRender = (column, row) => {
-            if (this.wipCondition(row)) {
-              return "Work in progress";
-            } else if (this.archivableCondition(row)) {
-              return "Archivable";
-            } else if (this.retrievableCondition(row)) {
-              return "Retrievable";
-            } else if (this.systemErrorCondition(row)) {
-              return "System error";
-            } else if (this.userErrorCondition(row)) {
-              return "User error";
-            }
-
-            return "";
-          };
-
-          convertedColumn.toExport = (row) => {
-            if (this.wipCondition(row)) {
-              return "Work in progress";
-            } else if (this.archivableCondition(row)) {
-              return "Archivable";
-            } else if (this.retrievableCondition(row)) {
-              return "Retrievable";
-            } else if (this.systemErrorCondition(row)) {
-              return "System error";
-            } else if (this.userErrorCondition(row)) {
-              return "User error";
-            }
-
-            return "";
-          };
-        }
-
-        if (column.name === "image") {
-          convertedColumn.renderImage = true;
-          convertedColumn.sort = "none";
-        }
-
-        if (column.name === "instrumentName") {
-          convertedColumn.customRender = (column, row) =>
-            this.getInstrumentName(row);
-          convertedColumn.toExport = (row, column) =>
-            this.getInstrumentName(row);
-        }
-
-        return convertedColumn;
-      });
-  }
-
   ngOnInit() {
     this.store.dispatch(fetchInstrumentsAction({ limit: 1000, skip: 0 }));
 
@@ -498,64 +347,112 @@ export class DatasetTableComponent implements OnInit, OnDestroy {
     );
 
     this.subscriptions.push(
-      this.instruments$.subscribe((instruments) => {
-        this.instruments = instruments;
-        this.instrumentMap = new Map(
-          instruments.map((instrument) => [instrument.pid, instrument]),
-        );
-      }),
+      combineLatest([this.selectedRows$, this.selectedDatasets$]).subscribe(
+        ([selectedRows, datasetsInBatch]) => {
+          // Only clear internal selection when neither active selection nor
+          // cart membership remains; this preserves indeterminate header state
+          // after "Add to Selection" while still resetting after submit success.
+          if (selectedRows.length === 0 && datasetsInBatch.length === 0) {
+            this.datasetTable?.clearSelection();
+          }
+        },
+      ),
     );
 
     this.subscriptions.push(
-      this.datasets$.subscribe((datasets) => {
-        this.currentUser$.subscribe((currentUser) => {
-          this.datasetCount$.subscribe(async (count) => {
-            const defaultTableColumns = await lastValueFrom(
-              this.selectColumnsWithFetchedSettings$.pipe(take(1)),
-            );
+      this.datasets$
+        .pipe(
+          combineLatestWith(
+            this.currentUser$,
+            this.datasetCount$,
+            this.isFacetCountsLoading$,
+            this.selectColumnsWithFetchedSettings$.pipe(
+              filter(
+                ({ hasFetchedSettings, columns }) =>
+                  hasFetchedSettings && columns.length > 0,
+              ),
+            ),
+          ),
+        )
+        .subscribe(
+          ([
+            datasets,
+            currentUser,
+            count,
+            isFacetCountsLoading,
+            defaultTableColumns,
+          ]) => {
+            const userConfigColumns = defaultTableColumns.columns;
 
-            if (
-              defaultTableColumns.hasFetchedSettings &&
-              defaultTableColumns.columns.length
-            ) {
-              const tableColumns = defaultTableColumns.columns;
+            this.rowSelectionMode = currentUser ? "multi" : "none";
+            if (userConfigColumns) {
+              this.dataSource.next(datasets);
+              this.pending = false;
 
-              if (!currentUser) {
-                this.rowSelectionMode = "none";
-              } else {
-                this.rowSelectionMode = "multi";
-              }
+              const tableSort = this.getTableSort();
+              const paginationConfig = this.getTablePaginationConfig(
+                count,
+                isFacetCountsLoading,
+              );
 
-              if (tableColumns) {
-                this.dataSource.next(datasets);
-                this.pending = false;
+              const defaultConfigColumns =
+                this.appConfig?.defaultDatasetsListSettings?.columns;
+              const userTableConfigColumns =
+                this.datasetsListService.convertSavedDatasetColumns(
+                  userConfigColumns,
+                );
 
-                const savedTableConfigColumns =
-                  this.convertSavedColumns(tableColumns);
+              this.tableDefaultSettingsConfig.settingList[0].columnSetting =
+                this.datasetsListService.convertSavedDatasetColumns(
+                  defaultConfigColumns as TableColumn[],
+                );
 
-                const tableSort = this.getTableSort();
-                const paginationConfig = this.getTablePaginationConfig(count);
-
-                this.tableDefaultSettingsConfig.settingList[0].columnSetting =
-                  savedTableConfigColumns;
-
-                const tableSettingsConfig =
-                  this.tableConfigService.getTableSettingsConfig(
-                    this.tableName,
-                    this.tableDefaultSettingsConfig,
-                    savedTableConfigColumns,
-                    tableSort,
-                  );
-
-                if (tableSettingsConfig?.settingList.length) {
-                  this.initTable(tableSettingsConfig, paginationConfig);
-                }
+              const tableSettingsConfig =
+                this.tableConfigService.getTableSettingsConfig(
+                  this.tableName,
+                  this.tableDefaultSettingsConfig,
+                  userTableConfigColumns,
+                  tableSort,
+                );
+              if (tableSettingsConfig?.settingList.length) {
+                this.initTable(tableSettingsConfig, paginationConfig);
               }
             }
-          });
-        });
-      }),
+          },
+        ),
     );
+    this.subscriptions.push(
+      this.route.queryParams
+        .pipe(combineLatestWith(this.store.select(selectTextFilter)))
+        .subscribe(([queryParams, storeSearchTerm]) => {
+          const searchQuery = JSON.parse(queryParams.searchQuery || "{}");
+          this.globalTextSearch = searchQuery.text || storeSearchTerm || "";
+        }),
+    );
+  }
+
+  onTextSearchChange(term: string) {
+    this.globalTextSearch = term;
+    this.store.dispatch(setSearchTermsAction({ terms: term }));
+    this.store.dispatch(setTextFilterAction({ text: term }));
+
+    const { queryParams } = this.route.snapshot;
+    const searchQuery = JSON.parse(queryParams.searchQuery || "{}");
+
+    this.router.navigate([], {
+      queryParams: {
+        searchQuery: JSON.stringify({
+          ...searchQuery,
+          text: term,
+        }),
+      },
+      queryParamsHandling: "merge",
+    });
+  }
+
+  onTextSearchAction() {
+    this.store.dispatch(fetchDatasetsAction());
+    this.store.dispatch(fetchFacetCountsAction());
   }
 
   ngOnDestroy() {

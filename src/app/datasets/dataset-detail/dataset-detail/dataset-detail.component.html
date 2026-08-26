@@ -1,4 +1,5 @@
 <ng-template [ngIf]="dataset">
+  <dataset-status-banner [datasetItem]="dataset"></dataset-status-banner>
   <div fxLayout="row">
     <div fxFlex="auto">
       <a
@@ -375,6 +376,7 @@
                   <tree-view
                     *ngSwitchCase="'tree'"
                     [metadata]="dataset['scientificMetadata']"
+                    [allowAddAsColumn]="true"
                   ></tree-view>
                   <metadata-view
                     *ngSwitchDefault
@@ -398,8 +400,7 @@
                 </mat-tab>
                 <mat-tab
                   class="editTab"
-                  *ngIf="editingAllowed"
-                  [hidden]="!appConfig.editMetadataEnabled"
+                  *ngIf="editingAllowed && appConfig.editMetadataEnabled"
                 >
                   <ng-template mat-tab-label>
                     <mat-icon> edit </mat-icon> Edit

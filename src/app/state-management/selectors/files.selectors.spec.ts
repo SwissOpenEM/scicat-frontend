@@ -1,5 +1,5 @@
 import * as fromSelectors from "./files.selectors";
-import { selectTablesSettings } from "./user.selectors";
+import { selectSettings } from "./user.selectors";
 import { GenericFilters } from "state-management/models";
 import { mockOrigDatablock as origDatablock } from "shared/MockStubs";
 import { FilesState } from "state-management/state/files.store";
@@ -15,6 +15,7 @@ const initialFilesState: FilesState = {
   origDatablocks: [],
   currentOrigDatablock: origDatablock,
   totalCount: 0,
+  filesCountIsLoading: false,
 
   filters: filesFilters,
 };
@@ -50,12 +51,16 @@ describe("Files Selectors", () => {
         fromSelectors.selectFilesWithCountAndTableSettings.projector(
           fromSelectors.selectAllOrigDatablocks.projector(initialFilesState),
           fromSelectors.selectOrigDatablocksCount.projector(initialFilesState),
-          selectTablesSettings.projector(initialUserState),
+          fromSelectors.selectFilesCountIsLoading.projector(initialFilesState),
+          selectSettings.projector(initialUserState),
         ),
       ).toEqual({
         origDatablocks: [],
         count: 0,
-        tablesSettings: {},
+        isLoading: false,
+        tablesSettings: {
+          columns: initialUserState.settings.fe_file_table_columns,
+        },
       });
     });
   });

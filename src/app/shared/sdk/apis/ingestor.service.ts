@@ -3,7 +3,6 @@ import { HttpClient, HttpParams, HttpHeaders } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { switchMap, take } from "rxjs/operators";
 import { AppConfigService } from "app-config.service";
-import { AuthService } from "../../services/auth/auth.service";
 import {
   DeleteTransferRequest,
   DeleteTransferResponse,
@@ -43,7 +42,6 @@ export class Ingestor {
   constructor(
     private http: HttpClient,
     public appConfigService: AppConfigService,
-    private authService: AuthService,
     private store: Store,
   ) {}
 
@@ -114,7 +112,6 @@ export class Ingestor {
     const params: any = {
       page: page.toString(),
       pageSize: pageSize.toString(),
-      ScicatAPIToken: `Bearer ${this.authService.getToken().id}`
     };
     if (transferId) {
       params.transferId = transferId;

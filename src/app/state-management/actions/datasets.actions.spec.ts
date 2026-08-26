@@ -97,7 +97,7 @@ describe("Dataset Actions", () => {
 
   describe("fetchMetadataKeysAction", () => {
     it("should create an action", () => {
-      const action = fromActions.fetchMetadataKeysAction();
+      const action = fromActions.fetchMetadataKeysAction({});
       expect({ ...action }).toEqual({
         type: "[Dataset] Fetch Metadata Keys",
       });
@@ -247,6 +247,13 @@ describe("Dataset Actions", () => {
     });
   });
 
+  describe("addCurrentToBatchAction", () => {
+    it("should create an action", () => {
+      const action = fromActions.addCurrentToBatchAction();
+      expect({ ...action }).toEqual({ type: "[Dataset] Add Current To Batch" });
+    });
+  });
+
   describe("removeFromBatchAction", () => {
     it("should create an action", () => {
       const action = fromActions.removeFromBatchAction({ dataset });
@@ -301,6 +308,19 @@ describe("Dataset Actions", () => {
       const action = fromActions.updatePropertyAction({ pid, property });
       expect({ ...action }).toEqual({
         type: "[Dataset] Update Property",
+        pid,
+        property,
+      });
+    });
+  });
+
+  describe("updatePropertyInlineAction", () => {
+    it("should create an action", () => {
+      const pid = "testPid";
+      const property = { isPublished: true };
+      const action = fromActions.updatePropertyInlineAction({ pid, property });
+      expect({ ...action }).toEqual({
+        type: "[Dataset] Update Property Inline",
         pid,
         property,
       });

@@ -9,6 +9,7 @@ import {
   OrigDatablock,
   OutputDatasetObsoleteDto,
   UpdateAttachmentV3Dto,
+  MetadataKeysV4Service,
 } from "@scicatproject/scicat-sdk-ts-angular";
 import { Store } from "@ngrx/store";
 import {
@@ -35,6 +36,7 @@ import {
   loadingCompleteAction,
   updateUserSettingsAction,
 } from "state-management/actions/user.actions";
+import { AppConfigService } from "app-config.service";
 
 @Injectable()
 export class DatasetEffects {
@@ -54,7 +56,28 @@ export class DatasetEffects {
         fromActions.setArchiveViewModeAction,
       ),
       concatLatestFrom(() => this.fullqueryParams$),
-      map(([, params]) => params),
+      map(([, params]) => {
+        const config = this.appConfigService.getConfig();
+
+        const defaultConfigColumns =
+          config?.defaultDatasetsListSettings?.columns;
+        let defaultColumn = "createdAt";
+        let defaultDirection = "desc";
+
+        if (defaultConfigColumns) {
+          const sortCol = defaultConfigColumns.find((col) => col.sort);
+
+          if (sortCol) {
+            defaultColumn = sortCol.name;
+            defaultDirection = sortCol.sort;
+          }
+        }
+
+        if (!params.limits.order) {
+          params.limits.order = `${defaultColumn}:${defaultDirection}`;
+        }
+        return params;
+      }),
       mergeMap(({ query, limits }) =>
         this.datasetsService
           .datasetsControllerFullqueryV3(
@@ -105,15 +128,30 @@ export class DatasetEffects {
   fetchMetadataKeys$ = createEffect(() => {
     return this.actions$.pipe(
       ofType(fromActions.fetchMetadataKeysAction),
-      concatLatestFrom(() => this.fullqueryParams$),
-      map(([, params]) => params),
-      mergeMap(({ query }) => {
-        return this.datasetsService
-          .datasetsControllerMetadataKeysV3(JSON.stringify(query))
+      switchMap(({ searchTerm }) => {
+        const filter = {
+          where: {},
+          fields: ["key", "humanReadableName"],
+        };
+
+        if (searchTerm && searchTerm.trim()) {
+          filter.where = {
+            $or: [
+              { key: { $regex: searchTerm, $options: "i" } },
+              { humanReadableName: { $regex: searchTerm, $options: "i" } },
+            ],
+          };
+        }
+
+        return this.metadataKeysV4Service
+          .metadataKeysV4ControllerFindAllV4(JSON.stringify(filter))
           .pipe(
-            map((metadataKeys) =>
-              fromActions.fetchMetadataKeysCompleteAction({ metadataKeys }),
-            ),
+            map((metadataKeys) => {
+              const keys = metadataKeys.map((dto) => dto.key);
+              return fromActions.fetchMetadataKeysCompleteAction({
+                metadataKeys: keys,
+              });
+            }),
             catchError(() => of(fromActions.fetchMetadataKeysFailedAction())),
           );
       }),
@@ -136,7 +174,7 @@ export class DatasetEffects {
         fromActions.removeScientificConditionAction,
         fromActions.clearFacetsAction,
       ),
-      map(() => fromActions.fetchMetadataKeysAction()),
+      map(() => fromActions.fetchMetadataKeysAction({})),
     );
   });
 
@@ -312,6 +350,20 @@ export class DatasetEffects {
     );
   });
 
+  updatePropertyInline$ = createEffect(() => {
+    return this.actions$.pipe(
+      ofType(fromActions.updatePropertyInlineAction),
+      switchMap(({ pid, property }) =>
+        this.datasetsService
+          .datasetsControllerFindByIdAndUpdateV3(pid, property)
+          .pipe(
+            map(() => fromActions.updatePropertyCompleteAction()),
+            catchError(() => of(fromActions.updatePropertyFailedAction())),
+          ),
+      ),
+    );
+  });
+
   addAttachment$ = createEffect(() => {
     return this.actions$.pipe(
       ofType(fromActions.addAttachmentAction),
@@ -402,6 +454,7 @@ export class DatasetEffects {
         fromActions.fetchAttachmentsAction,
         fromActions.addDatasetAction,
         fromActions.updatePropertyAction,
+        fromActions.updatePropertyInlineAction,
         fromActions.addAttachmentAction,
         fromActions.updateAttachmentCaptionAction,
         fromActions.removeAttachmentAction,
@@ -462,6 +515,7 @@ export class DatasetEffects {
       return this.actions$.pipe(
         ofType(
           fromActions.addToBatchAction,
+          fromActions.addCurrentToBatchAction,
           fromActions.storeBatchAction,
           fromActions.removeFromBatchAction,
           fromActions.clearBatchAction,
@@ -487,6 +541,8 @@ export class DatasetEffects {
     private actions$: Actions,
     private datasetsService: DatasetsService,
     private store: Store,
+    private appConfigService: AppConfigService,
+    private metadataKeysV4Service: MetadataKeysV4Service,
   ) {}
 
   private storeBatch(batch: OutputDatasetObsoleteDto[], userId: string) {

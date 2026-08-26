@@ -3,24 +3,38 @@ import {
   ConditionConfig,
 } from "state-management/state/user.store";
 import { IngestorAutodiscovery } from "ingestor/ingestor-page/helper/ingestor.component-helper";
+import { FieldSort } from "shared/modules/dynamic-material-table/models/table-field.model";
 
 export interface Settings {
   tapeCopies: string;
   datasetCount: number;
   jobCount: number;
   darkTheme: false;
+  fe_dataset_table_columns?: TableColumn[];
+  fe_dataset_table_filters?: FilterConfig[];
+  fe_dataset_table_conditions?: ConditionConfig[];
+  fe_proposal_table_columns?: TableColumn[];
+  fe_proposal_table_filters?: FilterConfig[];
+  fe_sample_table_columns?: TableColumn[];
+  fe_sample_table_conditions?: ConditionConfig[];
+  fe_instrument_table_columns?: TableColumn[];
+  fe_file_table_columns?: TableColumn[];
+  fe_job_table_columns?: TableColumn[];
+  fe_publisheddata_table_columns?: TableColumn[];
 }
 
 export interface TableColumn {
   name: string;
   header?: string;
   path?: string;
+  userAdded?: boolean;
   order: number;
-  type: "standard" | "custom" | "date" | "hoverContent";
+  type: "standard" | "custom" | "date" | "hoverContent" | "editable";
   enabled: boolean;
   format?: string;
   tooltip?: string;
   width?: number;
+  sort?: FieldSort;
 }
 
 export interface LabelsLocalization {
@@ -85,7 +99,8 @@ type CustomizationType =
   | "regular"
   | "scientificMetadata"
   | "datasetJsonView"
-  | "attachments";
+  | "attachments"
+  | "statusBanner";
 
 // Type alias for allowed field types
 type FieldType = "text" | "copy" | "linky" | "tag" | "date";
@@ -142,9 +157,10 @@ type ScientificConditionRelation =
 export interface ScientificCondition {
   lhs: string;
   relation: ScientificConditionRelation;
-  rhs: string | number | number[];
+  rhs: string | number | (string | number)[];
   unit: string;
   unitsOptions?: string[];
+  human_name?: string;
 }
 
 export interface GenericFilters {
@@ -182,3 +198,60 @@ export interface LogbookFilters extends GenericFilters {
 export interface JobFilters extends GenericFilters {
   mode: Record<string, string> | undefined;
 }
+
+export type ConditionSettingScope = "dataset" | "sample";
+
+export const SETTINGS_CONFIG = [
+  { key: "fe_dataset_table_columns", scope: "dataset", configKey: "columns" },
+  {
+    key: "fe_dataset_table_conditions",
+    scope: "dataset",
+    configKey: "conditions",
+  },
+  { key: "fe_dataset_table_filters", scope: "dataset", configKey: "filters" },
+  { key: "fe_proposal_table_columns", scope: "proposal", configKey: "columns" },
+  { key: "fe_proposal_table_filters", scope: "proposal", configKey: "filters" },
+  { key: "fe_sample_table_columns", scope: "sample", configKey: "columns" },
+  {
+    key: "fe_sample_table_conditions",
+    scope: "sample",
+    configKey: "conditions",
+  },
+  {
+    key: "fe_instrument_table_columns",
+    scope: "instrument",
+    configKey: "columns",
+  },
+  { key: "fe_file_table_columns", scope: "file", configKey: "columns" },
+  { key: "fe_job_table_columns", scope: "job", configKey: "columns" },
+  {
+    key: "fe_publisheddata_table_columns",
+    scope: "publisheddata",
+    configKey: "columns",
+  },
+];
+
+export type SettingScope =
+  | "dataset"
+  | "proposal"
+  | "sample"
+  | "instrument"
+  | "file"
+  | "job"
+  | "publisheddata";
+export type SettingKind = "columns" | "filters" | "conditions";
+
+export const getSettingKey = (
+  scope: SettingScope,
+  kind: SettingKind,
+): string => {
+  const settingKey = SETTINGS_CONFIG.find(
+    (s) => s.scope === scope && s.configKey === kind,
+  );
+
+  if (!settingKey) {
+    throw new Error(`Missing ${scope}:${kind} in SETTINGS_CONFIG`);
+  }
+
+  return settingKey.key;
+};

@@ -18,7 +18,9 @@ const appConfig: AppConfigInterface = {
   addDatasetEnabled: true,
   archiveWorkflowEnabled: true,
   datasetReduceEnabled: true,
+  datasetRelationshipsEnabled: true,
   datasetJsonScientificMetadata: true,
+  datasetPageSizeOptions: [5, 10, 25, 100],
   editDatasetEnabled: true,
   editDatasetSampleEnabled: true,
   editMetadataEnabled: true,
@@ -41,6 +43,7 @@ const appConfig: AppConfigInterface = {
   ingestManual: null,
   jobsEnabled: true,
   dateFormat: "yyyy-MM-dd HH:mm",
+  timezone: "UTC",
   jsonMetadataEnabled: true,
   jupyterHubUrl: "https://jupyterhub.esss.lu.se/",
   landingPage: "doi2.psi.ch/detail/",
@@ -50,6 +53,12 @@ const appConfig: AppConfigInterface = {
   thumbnailFetchLimitPerPage: 500,
   maxFileUploadSizeInMb: "16mb",
   maxDirectDownloadSize: 5000000000,
+  metadataFloatFormatEnabled: true,
+  metadataFloatFormat: {
+    significantDigits: 3,
+    minCutoff: 0.001,
+    maxCutoff: 1000,
+  },
   metadataPreviewEnabled: true,
   metadataStructure: "",
   multipleDownloadAction: "http://localhost:3012/zip",
@@ -77,52 +86,16 @@ const appConfig: AppConfigInterface = {
   datasetDetailsShowMissingProposalId: true,
   helpMessages: new HelpMessages(),
   notificationInterceptorEnabled: true,
-  datafilesActionsEnabled: true,
-  datafilesActions: [
-    {
-      id: "eed8efec-4354-11ef-a3b5-d75573a5d37f",
-      order: 4,
-      label: "Download All",
-      files: "all",
-      mat_icon: "download",
-      url: "",
-      target: "_blank",
-      enabled: "#SizeLimit",
-      authorization: ["#datasetAccess", "#datasetPublic"],
-    },
-    {
-      id: "3072fafc-4363-11ef-b9f9-ebf568222d26",
-      order: 3,
-      label: "Download Selected",
-      files: "selected",
-      mat_icon: "download",
-      url: "",
-      target: "_blank",
-      enabled: "#Selected && #SizeLimit",
-      authorization: ["#datasetAccess", "#datasetPublic"],
-    },
-    {
-      id: "4f974f0e-4364-11ef-9c63-03d19f813f4e",
-      order: 2,
-      label: "Notebook All",
-      files: "all",
-      icon: "/assets/icons/jupyter_logo.png",
-      url: "",
-      target: "_blank",
-      authorization: ["#datasetAccess", "#datasetPublic"],
-    },
-    {
-      id: "fa3ce6ee-482d-11ef-95e9-ff2c80dd50bd",
-      order: 1,
-      label: "Notebook Selected",
-      files: "selected",
-      icon: "/assets/icons/jupyter_logo.png",
-      url: "",
-      target: "_blank",
-      enabled: "#Selected",
-      authorization: ["#datasetAccess", "#datasetPublic"],
-    },
-  ],
+  datasetActionsEnabled: false,
+  datasetActions: [],
+  datasetDetailsActionsEnabled: false,
+  datasetDetailsActions: [],
+  datafilesActionsEnabled: false,
+  datafilesActions: [],
+  datasetSelectionActionsEnabled: false,
+  datasetSelectionActions: [],
+  batchActionsEnabled: true,
+  batchActions: [],
   defaultDatasetsListSettings: {
     columns: [
       {
@@ -253,6 +226,14 @@ const appConfig: AppConfigInterface = {
   ingestorComponent: {
     ingestorEnabled: true,
   },
+  helpSettings: {
+    enabled: false,
+    htmlContent: "This is not my help",
+  },
+  aboutSettings: {
+    enabled: false,
+    htmlContent: "This is not my about",
+  },
 };
 
 describe("AppConfigService", () => {
@@ -280,6 +261,98 @@ describe("AppConfigService", () => {
 
       expect(service["appConfig"]).toEqual(appConfig);
     });
+
+    it("should default datasetPageSizeOptions when missing", async () => {
+      const configWithoutDatasetPageSizeOptions = {
+        ...appConfig,
+        datasetPageSizeOptions: undefined,
+      };
+      spyOn(service["http"], "get").and.returnValue(
+        of(configWithoutDatasetPageSizeOptions),
+      );
+
+      await service.loadAppConfig();
+
+      expect(service.getConfig().datasetPageSizeOptions).toEqual([
+        5, 10, 25, 100,
+      ]);
+    });
+
+    it("should not override a deployment's own batchActions when batchActionsEnabled is already truthy", async () => {
+      spyOn(service["http"], "get").and.returnValue(of(appConfig));
+
+      await service.loadAppConfig();
+
+      expect(service.getConfig().batchActionsEnabled).toBe(true);
+      expect(service.getConfig().batchActions).toEqual([]);
+    });
+
+    [undefined, false].forEach((batchActionsEnabled) => {
+      it(`should default batchActionsEnabled/batchActions to the built-in Archive/Retrieve actions when archiveWorkflowEnabled is true and batchActionsEnabled is ${batchActionsEnabled}`, async () => {
+        const configWithoutBatchActions = {
+          ...appConfig,
+          archiveWorkflowEnabled: true,
+          batchActionsEnabled,
+          batchActions: undefined,
+        };
+        spyOn(service["http"], "get").and.returnValue(
+          of(configWithoutBatchActions),
+        );
+
+        await service.loadAppConfig();
+
+        const config = service.getConfig();
+        expect(config.batchActionsEnabled).toBe(true);
+        expect(config.batchActions?.map((action) => action.label)).toEqual([
+          "Archive",
+          "Retrieve",
+        ]);
+      });
+    });
+
+    it("should not default batchActions when archiveWorkflowEnabled is false", async () => {
+      const configWithoutArchiveWorkflow = {
+        ...appConfig,
+        archiveWorkflowEnabled: false,
+        batchActionsEnabled: undefined,
+        batchActions: undefined,
+      };
+      spyOn(service["http"], "get").and.returnValue(
+        of(configWithoutArchiveWorkflow),
+      );
+
+      await service.loadAppConfig();
+
+      const config = service.getConfig();
+      expect(config.batchActionsEnabled).toBeUndefined();
+      expect(config.batchActions).toBeUndefined();
+    });
+
+    it("should populate the defaulted Retrieve action's dialog options from retrieveDestinations", async () => {
+      const configWithoutBatchActions = {
+        ...appConfig,
+        archiveWorkflowEnabled: true,
+        batchActionsEnabled: undefined,
+        batchActions: undefined,
+        retrieveDestinations: [
+          { option: "PSI", tooltip: "Copy to PSI" },
+          { option: "URLs", tooltip: "Get download URLs" },
+        ],
+      };
+      spyOn(service["http"], "get").and.returnValue(
+        of(configWithoutBatchActions),
+      );
+
+      await service.loadAppConfig();
+
+      const retrieveAction = service
+        .getConfig()
+        .batchActions?.find((action) => action.label === "Retrieve");
+      expect(retrieveAction?.dialog?.fields[0].options).toEqual([
+        { option: "PSI", tooltip: "Copy to PSI" },
+        { option: "URLs", tooltip: "Get download URLs" },
+      ]);
+    });
   });
 
   describe("#getConfig()", () => {
@@ -288,17 +361,27 @@ describe("AppConfigService", () => {
         accessTokenPrefix: "",
         lbBaseURL: "http://127.0.0.1:3000",
         gettingStarted: null,
+        datasetPageSizeOptions: [5, 10, 25, 100],
         defaultMainPage: {
           nonAuthenticatedUser: "DATASETS",
           authenticatedUser: "DATASETS",
         },
         mainMenu: { nonAuthenticatedUser: { datasets: true } },
         dateFormat: "yyyy-MM-dd HH:mm",
+        timezone: "UTC",
         oAuth2Endpoints: [
           {
             authURL: "abcd",
           },
         ],
+        helpSettings: {
+          enabled: false,
+          htmlContent: "This is the mockConfigResponses config.json help",
+        },
+        aboutSettings: {
+          enabled: false,
+          htmlContent: "This is the mockConfigResponses config.json about",
+        },
       },
       "/assets/config.override.json": {
         accessTokenPrefix: "Bearer ",
@@ -306,6 +389,16 @@ describe("AppConfigService", () => {
         addDatasetEnabled: true,
         mainMenu: { nonAuthenticatedUser: { files: true } },
         oAuth2Endpoints: [],
+        helpSettings: {
+          enabled: false,
+          htmlContent:
+            "This is the mockConfigResponses config.override.json help",
+        },
+        aboutSettings: {
+          enabled: false,
+          htmlContent:
+            "This is the mockConfigResponses config.override.json about",
+        },
       },
     };
 
@@ -313,6 +406,7 @@ describe("AppConfigService", () => {
       accessTokenPrefix: "Bearer ",
       lbBaseURL: "http://127.0.0.1:3000",
       gettingStarted: "aGettingStarted",
+      datasetPageSizeOptions: [5, 10, 25, 100],
       addDatasetEnabled: true,
       defaultMainPage: {
         nonAuthenticatedUser: "DATASETS",
@@ -321,6 +415,17 @@ describe("AppConfigService", () => {
       mainMenu: { nonAuthenticatedUser: { datasets: true, files: true } },
       oAuth2Endpoints: [],
       dateFormat: "yyyy-MM-dd HH:mm",
+      timezone: "UTC",
+      helpSettings: {
+        enabled: false,
+        htmlContent:
+          "This is the mockConfigResponses config.override.json help",
+      },
+      aboutSettings: {
+        enabled: false,
+        htmlContent:
+          "This is the mockConfigResponses config.override.json about",
+      },
     };
 
     const mockHttpGet = (

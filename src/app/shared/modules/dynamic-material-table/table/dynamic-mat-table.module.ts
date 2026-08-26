@@ -20,12 +20,10 @@ import {
   DynamicMatTableComponent,
 } from "./dynamic-mat-table.component";
 import { TableMenuModule } from "./extensions/table-menu/table-menu.module";
-import { HeaderFilterModule } from "./extensions/filter/header-filter.module";
 import { TableVirtualScrollModule } from "../cores/table-virtual-scroll.module";
 import { PrintTableDialogComponent } from "./extensions/print-dialog/print-dialog.component";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatTooltipModule } from "@angular/material/tooltip";
-import { MatRippleModule } from "@angular/material/core";
 import { TooltipComponent } from "../tooltip/tooltip.component";
 import {
   FullscreenOverlayContainer,
@@ -41,7 +39,7 @@ import { EmptyContentModule } from "shared/modules/generic-empty-content/empty-c
 import { MatCardModule } from "@angular/material/card";
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const ExtensionsModule = [HeaderFilterModule, RowMenuModule];
+const ExtensionsModule = [RowMenuModule];
 
 @NgModule({
   imports: [
@@ -58,18 +56,17 @@ const ExtensionsModule = [HeaderFilterModule, RowMenuModule];
     MatIconModule,
     DragDropModule,
     TableMenuModule,
+    MatDividerModule,
     MatPaginatorModule,
     MatDialogModule,
     MatButtonModule,
     MatCardModule,
     MatMenuModule,
-    MatDividerModule,
-    MatTooltipModule,
-    MatRippleModule,
-    OverlayModule,
     ExtensionsModule,
     PipesModule,
     EmptyContentModule,
+    OverlayModule,
+    MatTooltipModule,
   ],
   exports: [DynamicMatTableComponent],
   declarations: [

@@ -13,9 +13,12 @@ import {
   FilterConfig,
 } from "state-management/state/user.store";
 
-export const setDatasetTableColumnsAction = createAction(
-  "[User] Set Dataset Table Columns",
-  props<{ columns: TableColumn[] }>(),
+export const setTableColumnsAction = createAction(
+  "[User] Set Table Columns",
+  props<{
+    columns: TableColumn[];
+    scope: "dataset" | "proposal" | "sample" | "instrument" | "file";
+  }>(),
 );
 
 export const loginOIDCAction = createAction(
@@ -137,9 +140,11 @@ export const logoutCompleteAction = createAction(
 );
 export const logoutFailedAction = createAction("[User] Logout Failed");
 
+export const sessionTimeoutAction = createAction("[User] Session Timeout");
+
 export const addCustomColumnsAction = createAction(
   "[User] Add Custom Columns",
-  props<{ names: string[] }>(),
+  props<{ names: string[]; scope: "dataset" | "sample" }>(),
 );
 export const addCustomColumnsCompleteAction = createAction(
   "[User] Add Custom Columns Complete",
@@ -147,11 +152,19 @@ export const addCustomColumnsCompleteAction = createAction(
 
 export const selectColumnAction = createAction(
   "[User] Select Column",
-  props<{ name: string; columnType: "standard" | "custom" }>(),
+  props<{
+    name: string;
+    columnType: "standard" | "custom";
+    scope: "dataset" | "proposal" | "sample" | "instrument" | "file";
+  }>(),
 );
 export const deselectColumnAction = createAction(
   "[User] Deselect Column",
-  props<{ name: string; columnType: "standard" | "custom" }>(),
+  props<{
+    name: string;
+    columnType: "standard" | "custom";
+    scope: "dataset" | "proposal" | "sample" | "instrument" | "file";
+  }>(),
 );
 
 export const showMessageAction = createAction(
@@ -170,7 +183,7 @@ export const loadingCompleteAction = createAction("[User] Loading Complete");
 
 export const updateFilterConfigs = createAction(
   "[User] Update Filter Configs",
-  props<{ filterConfigs: FilterConfig[] }>(),
+  props<{ filterConfigs: FilterConfig[]; scope: "dataset" | "proposal" }>(),
 );
 
 export const updateHasFetchedSettings = createAction(
@@ -185,7 +198,7 @@ export const updateIsPublishedAction = createAction(
 
 export const updateConditionsConfigs = createAction(
   "[User] Update Conditions Configs",
-  props<{ conditionConfigs: ConditionConfig[] }>(),
+  props<{ conditionConfigs: ConditionConfig[]; scope: "dataset" | "sample" }>(),
 );
 
 export const loadDefaultSettings = createAction(

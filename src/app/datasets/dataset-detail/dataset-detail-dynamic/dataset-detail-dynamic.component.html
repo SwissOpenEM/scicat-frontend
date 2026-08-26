@@ -13,6 +13,10 @@
         Jupyter Hub
       </a>
     </div>
+    <configurable-actions
+      [actionsConfig]="appConfig.datasetActions"
+      [actionItems]="actionItems"
+    ></configurable-actions>
   </div>
   <div style="clear: both"></div>
 
@@ -26,6 +30,16 @@
     <!-- Iterate over each section in datasetView -->
     <ng-container *ngFor="let section of datasetView">
       <ng-container [ngSwitch]="section.type">
+        <!-- Status Banner Section -->
+        <div
+          *ngSwitchCase="'statusBanner'"
+          class="card-container"
+          [style.gridColumn]="'span ' + (section.col || 10)"
+          [style.gridRow]="'span ' + (section.row || 1)"
+        >
+          <dataset-status-banner [datasetItem]="dataset"></dataset-status-banner>
+        </div>
+
         <!-- Regular Section -->
         <div
           *ngSwitchCase="'regular'"
@@ -179,6 +193,8 @@
                       <tree-view
                         *ngSwitchCase="'tree'"
                         [metadata]="metadata"
+                        [allowAddAsColumn]="true"
+                        [metadataPath]="section.source || 'scientificMetadata'"
                       ></tree-view>
                       <metadata-view
                         *ngSwitchDefault
@@ -221,8 +237,9 @@
               {{ section.label | translate: localization }}
             </mat-card-header>
             <mat-card-content>
-              <div class="attachments-wrapper">
-                <ng-container *ngIf="attachments$ | async as attachments">
+              <ng-container *ngIf="attachments$ | async as attachments">
+                <!-- TOP: thumbnails -->
+                <div class="attachments-wrapper">
                   <ng-container
                     *ngIf="attachments.length > 0; else noAttachments"
                   >
@@ -247,11 +264,24 @@
                       />
                     </ng-container>
                   </ng-container>
-                </ng-container>
-                <ng-template #noAttachments>
-                  <p class="no-attachments-message">No attachments found</p>
-                </ng-template>
-              </div>
+                </div>
+
+                <!-- BOTTOM: footer -->
+                <div class="attachments-footer">
+                  <button
+                    mat-icon-button
+                    (click)="navigateToAttachmentsTab()"
+                    matTooltip="Upload or manage attachments"
+                    matTooltipPosition="above"
+                  >
+                    <mat-icon>add_photo_alternate</mat-icon>
+                  </button>
+                </div>
+              </ng-container>
+
+              <ng-template #noAttachments>
+                <p class="no-attachments-message">No attachments found</p>
+              </ng-template>
             </mat-card-content>
           </mat-card>
         </div>

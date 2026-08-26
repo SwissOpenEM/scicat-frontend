@@ -29,6 +29,7 @@ import { MatSnackBar } from "@angular/material/snack-bar";
 import { DatePipe } from "@angular/common";
 import { Type } from "../base-classes/metadata-input-base";
 import { DateTime } from "luxon";
+import { AppConfigService } from "app-config.service";
 
 export class FlatNodeEdit implements FlatNode {
   key: string;
@@ -37,6 +38,9 @@ export class FlatNodeEdit implements FlatNode {
   level: number;
   expandable: boolean;
   visible: boolean;
+  path: string;
+  columnName: string;
+  human_name?: string;
   editing: boolean;
   editable: boolean;
 }
@@ -64,8 +68,9 @@ export class TreeEditComponent
     public dialog: MatDialog,
     private snackBar: MatSnackBar,
     datePipe: DatePipe,
+    configService: AppConfigService,
   ) {
-    super();
+    super(configService);
     this.datePipe = datePipe;
     this.treeFlattener = new MatTreeFlattener(
       this.transformer,
@@ -112,6 +117,9 @@ export class TreeEditComponent
     flatNode.value = node.value;
     flatNode.expandable = node.children?.length > 0;
     flatNode.unit = node.unit;
+    flatNode.path = node.path;
+    flatNode.columnName = node.columnName;
+    flatNode.human_name = node.human_name;
     if (!existingNode) {
       // Important only set for new node
       flatNode.editing = node.key === "" ? true : false;

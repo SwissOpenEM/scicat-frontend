@@ -1,7 +1,6 @@
 import { DatasetEffects } from "./../state-management/effects/datasets.effects";
 import { EffectsModule } from "@ngrx/effects";
 import { LinkyModule } from "ngx-linky";
-import { ArchivingService } from "./archiving.service";
 import { BatchViewComponent } from "./batch-view/batch-view.component";
 import { AsyncPipe, CommonModule } from "@angular/common";
 import { FlexLayoutModule } from "@ngbracket/ngx-layout";
@@ -74,8 +73,6 @@ import { AdminTabComponent } from "./admin-tab/admin-tab.component";
 import { instrumentsReducer } from "state-management/reducers/instruments.reducer";
 import { InstrumentEffects } from "state-management/effects/instruments.effects";
 import { RelatedDatasetsComponent } from "./related-datasets/related-datasets.component";
-import { DatafilesActionsComponent } from "./datafiles-actions/datafiles-actions.component";
-import { DatafilesActionComponent } from "./datafiles-actions/datafiles-action.component";
 import { MatMenuModule } from "@angular/material/menu";
 import { DatasetsFilterSettingsComponent } from "./datasets-filter/settings/datasets-filter-settings.component";
 import { CdkDrag, CdkDragHandle, CdkDropList } from "@angular/cdk/drag-drop";
@@ -85,12 +82,19 @@ import { JsonFormsModule } from "@jsonforms/angular";
 import { JsonFormsAngularMaterialModule } from "@jsonforms/angular-material";
 import { DatasetDetailDynamicComponent } from "./dataset-detail/dataset-detail-dynamic/dataset-detail-dynamic.component";
 import { DatasetDetailWrapperComponent } from "./dataset-detail/dataset-detail-wrapper.component";
+import { DatasetStatusBannerComponent } from "./dataset-detail/dataset-status-banner/dataset-status-banner.component";
+import { DatasetInlineEditCellComponent } from "./dataset-table/dataset-inline-edit-cell.component";
 import { JsonHeadPipe } from "shared/pipes/json-head.pipe";
 import { ThumbnailPipe } from "shared/pipes/thumbnail.pipe";
 import { IngestorModule } from "../ingestor/ingestor.module";
 import { MatExpansionModule } from "@angular/material/expansion";
 import { MatBadgeModule } from "@angular/material/badge";
 import { TitleCasePipe } from "shared/pipes/title-case.pipe";
+import { OverlayModule } from "@angular/cdk/overlay";
+import { SharedConditionModule } from "shared/modules/shared-condition/shared-condition.module";
+import { RelationshipsComponent } from "./relationships/relationships.component";
+import { RelatedIdentifierCellComponent } from "./relationships/related-identifier-cell/related-identifier-cell.component";
+import { ActionEffects } from "state-management/effects/actions.effect";
 
 import { OneDepComponent } from "./depositor/onedep/onedep.component";
 import { EmpiarComponent } from "./depositor/empiar/empiar.component";
@@ -155,6 +159,7 @@ import { OrcidFormatterDirective } from "./depositor/onedep/onedep.directive";
       SampleEffects,
       PublishedDataEffects,
       LogbookEffects,
+      ActionEffects,
       OneDepEffects,
     ]),
     StoreModule.forFeature("datasets", datasetsReducer),
@@ -177,7 +182,9 @@ import { OrcidFormatterDirective } from "./depositor/onedep/onedep.directive";
     IngestorModule,
     MatExpansionModule,
     MatBadgeModule,
+    OverlayModule,
     IngestorModule,
+    SharedConditionModule,
   ],
   declarations: [
     BatchViewComponent,
@@ -188,7 +195,9 @@ import { OrcidFormatterDirective } from "./depositor/onedep/onedep.directive";
     DatasetDetailWrapperComponent,
     DatasetDetailComponent,
     DatasetDetailDynamicComponent,
+    DatasetStatusBannerComponent,
     DatasetTableComponent,
+    DatasetInlineEditCellComponent,
     DatasetsFilterComponent,
     PublishComponent,
     ReduceComponent,
@@ -202,8 +211,8 @@ import { OrcidFormatterDirective } from "./depositor/onedep/onedep.directive";
     DatasetFileUploaderComponent,
     AdminTabComponent,
     RelatedDatasetsComponent,
-    DatafilesActionsComponent,
-    DatafilesActionComponent,
+    RelationshipsComponent,
+    RelatedIdentifierCellComponent,
     DatasetsFilterSettingsComponent,
     DepositorComponent,
     DepositorWrapperComponent, 
@@ -217,7 +226,6 @@ import { OrcidFormatterDirective } from "./depositor/onedep/onedep.directive";
     CustomReferenceControlComponent,
   ],
   providers: [
-    ArchivingService,
     AsyncPipe,
     JsonHeadPipe,
     ThumbnailPipe,

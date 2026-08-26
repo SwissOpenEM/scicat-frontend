@@ -8,6 +8,7 @@ import { ServiceGuard } from "./service.guard";
 import { IngestorGuard } from "./ingestor.guard";
 import { MainPageGuard } from "./main-page";
 import { RedirectingComponent } from "./redirecting.component";
+import { AdminGuard } from "./admin.guard";
 
 export const routes: Routes = [
   {
@@ -30,9 +31,9 @@ export const routes: Routes = [
       {
         path: "auth-callback",
         loadChildren: () =>
-          import(
-            "./lazy/auth-callback-routing/auth-callback.feature.module"
-          ).then((m) => m.AuthCallbackFeatureModule),
+          import("./lazy/auth-callback-routing/auth-callback.feature.module").then(
+            (m) => m.AuthCallbackFeatureModule,
+          ),
       },
       {
         path: "",
@@ -55,9 +56,9 @@ export const routes: Routes = [
           {
             path: "instruments",
             loadChildren: () =>
-              import(
-                "./lazy/instruments-routing/instruments.feature.module"
-              ).then((m) => m.InstrumentsFeatureModule),
+              import("./lazy/instruments-routing/instruments.feature.module").then(
+                (m) => m.InstrumentsFeatureModule,
+              ),
           },
           {
             path: "proposals",
@@ -69,9 +70,9 @@ export const routes: Routes = [
           {
             path: "publishedDatasets",
             loadChildren: () =>
-              import(
-                "./lazy/publisheddata-routing/publisheddata.feature.module"
-              ).then((m) => m.PublisheddataFeatureModule),
+              import("./lazy/publisheddata-routing/publisheddata.feature.module").then(
+                (m) => m.PublisheddataFeatureModule,
+              ),
           },
           {
             path: "samples",
@@ -87,13 +88,20 @@ export const routes: Routes = [
                 (m) => m.PoliciesFeatureModule,
               ),
           },
-
           {
             path: "user",
             loadChildren: () =>
               import("./lazy/user-routing/user.feature.module").then(
                 (m) => m.UsersFeatureModule,
               ),
+          },
+          {
+            path: "admin",
+            loadChildren: () =>
+              import("./lazy/admin-routing/admin.feature.module").then(
+                (m) => m.AdminFeatureModule,
+              ),
+            canActivate: [AdminGuard],
           },
           {
             path: "about",
