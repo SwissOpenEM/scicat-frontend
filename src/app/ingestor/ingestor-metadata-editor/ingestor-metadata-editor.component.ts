@@ -65,6 +65,9 @@ export class IngestorMetadataEditorComponent implements OnInit {
       }
       Object.keys(schema.properties).forEach((key) => {
         const property = schema.properties[key];
+        if (property.const !== undefined && target[key] === undefined) {
+          target[key] = property.const;
+        }
         if (property.type === "object") {
           if (target[key] === undefined || target[key] === null) {
             target[key] = {};
