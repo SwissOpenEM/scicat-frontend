@@ -196,7 +196,8 @@ export class IngestorExtractorMetadataDialogPageComponent
     const result = IngestorMetadataEditorHelper.processMetadataErrors(
       errors,
       this.metadataSchemaAcquisition,
-      this.activeRenderView,
+      //this.activeRenderView,
+      "requiredOnly",
     );
 
     this.isAcquisitionMetadataOk = result.isValid;
@@ -206,11 +207,11 @@ export class IngestorExtractorMetadataDialogPageComponent
   }
 
   validateNextButton(): void {
-    /*this.uiNextButtonReady =
+    this.uiNextButtonReady =
       this.isInstrumentMetadataOk &&
       this.isAcquisitionMetadataOk &&
-      this.extractorMetaDataReady;*/
+      this.extractorMetaDataReady;
 
-    this.uiNextButtonReady = this.extractorMetaDataReady;
+    //this.uiNextButtonReady = this.extractorMetaDataReady;
   }
 }
