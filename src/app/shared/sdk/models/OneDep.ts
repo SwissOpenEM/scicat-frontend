@@ -21,6 +21,7 @@ export interface OneDepCreated {
   // Errors      :OneDepError
   code: string;
   message: string;
+  refreshToken: string;
 }
 
 export interface OneDepUserInfo {
@@ -28,13 +29,14 @@ export interface OneDepUserInfo {
   orcidIds: string[];
   country: string;
   method: string;
-  jwtToken: string;
+  refreshToken: string;
   password?: string;
 }
 
 export interface UploadedFile {
   depID: string;
   fileID: string;
+  refreshToken: string;
 }
 
 export interface FileUpload {
@@ -48,4 +50,5 @@ export interface SuccessfullDeposition {
     step: string;
     details: string;
     date: string;
+    refreshToken: string;
   }

@@ -30,6 +30,7 @@ export interface OneDepState {
   currentFileID: string | undefined;
   depositionStatus: UploadStatus;
   fileUploadProgress: FileUploadProgress[];
+  refreshToken?: string;
 }
 
 export const initialOneDepState: OneDepState = {

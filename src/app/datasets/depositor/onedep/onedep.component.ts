@@ -94,7 +94,7 @@ export class OneDepComponent implements OnChanges, OnDestroy {
     this.form = this.fb.group({
       privacyTermsTicked: new FormControl(false, Validators.requiredTrue),
       email: ["", [Validators.required, Validators.email]],
-      jwtToken: ["", Validators.required],
+      refreshToken: ["", Validators.required],
       password: new FormControl(""),
       metadata: ["", Validators.required],
       orcid: this.fb.array([
@@ -637,7 +637,7 @@ export class OneDepComponent implements OnChanges, OnDestroy {
         orcidIds: this.orcidArray().value.map((item) => item.orcidId),
         country: "United States",
         method: this.form.value.emMethod,
-        jwtToken: this.form.value.jwtToken,
+        refreshToken: this.form.value.refreshToken,
         password: this.form.value.password,
         coordinates: this.form.value.deposingCoordinates === "true",
       };
@@ -647,7 +647,7 @@ export class OneDepComponent implements OnChanges, OnDestroy {
         orcidIds: this.orcidArray().value.map((item) => item.orcidId),
         country: "United States",
         method: this.form.value.emMethod,
-        jwtToken: this.form.value.jwtToken,
+        refreshToken: this.form.value.refreshToken,
         coordinates: this.form.value.deposingCoordinates === "true",
       };
     }
@@ -657,7 +657,7 @@ export class OneDepComponent implements OnChanges, OnDestroy {
       .filter((fT) => fT.value.file)
       .map((fT) => {
         const formDataFile = new FormData();
-        formDataFile.append("jwtToken", this.form.value.jwtToken);
+        formDataFile.append("refreshToken", this.form.value.refreshToken);
         formDataFile.append("file", fT.value.file);
         if (fT.value.emName === this.emFile.Coordinates) {
           formDataFile.append(
@@ -681,7 +681,7 @@ export class OneDepComponent implements OnChanges, OnDestroy {
     if (!metadataAdded) {
       const formDataFile = new FormData();
 
-      formDataFile.append("jwtToken", this.form.value.jwtToken);
+      formDataFile.append("refreshToken", this.form.value.refreshToken);
       formDataFile.append(
         "scientificMetadata",
         JSON.stringify(this.form.value.metadata),

@@ -33,6 +33,11 @@ export const submitDepositionFailure = createAction(
   props<{ err: Error }>(),
 );
 
+export const updateRefreshToken = createAction(
+  "[OneDep] Update Refresh Token",
+  props<{ refreshToken: string }>(),
+);
+
 export const accessEmpiarSchema = createAction("[EMPIAR] get EMPIAR schema");
 export const accessEmpiarSchemaSuccess = createAction(
   "[EMPIAR] Successfully retrieved JSON schema for EMPIAR deposition",

@@ -79,9 +79,10 @@ export class OneDepEffects {
         this.store.dispatch(fromActions.startDepositionCreation());
       }),
       switchMap(({ deposition, files }) => {
-        const jwtToken = deposition.jwtToken;
+        let refreshToken = deposition.refreshToken;
         return this.onedepDepositor.createDep(deposition).pipe(
           tap((dep) => {
+            if(dep.refreshToken) refreshToken = dep.refreshToken
             const message = {
               type: MessageType.Success,
               content: `Deposition entry created: ${dep.id}. Start uploading files.`,
@@ -115,6 +116,9 @@ export class OneDepEffects {
                   })
                 );
 
+                // The form was built with the original token; send the latest one.
+                file.form.set("refreshToken", refreshToken);
+
                 const uploadObservable =
                   file.fileType === EmFile.Coordinates
                     ? this.onedepDepositor.sendCoordFile(dep.id, file.form)
@@ -123,7 +127,8 @@ export class OneDepEffects {
                     : this.onedepDepositor.sendFile(dep.id, file.form);
 
                 return uploadObservable.pipe(
-                  tap(() => {
+                  tap((res) => {
+                    if (res?.refreshToken) refreshToken = res.refreshToken;
                     // Mark file as success
                     this.store.dispatch(
                       fromActions.updateFileUploadStatus({
@@ -151,9 +156,10 @@ export class OneDepEffects {
               last(),
               switchMap(() => {
                 const processForm = new FormData();
-                processForm.append('jwtToken', jwtToken);
+                processForm.append('refreshToken', refreshToken);
                 return this.onedepDepositor.process(dep.id, processForm).pipe(
-                  tap(() => {
+                  tap((res) => {
+                    if (res?.refreshToken) refreshToken = res.refreshToken;
                     const message = {
                       type: MessageType.Success,
                       content: `Deposition ${dep.id} processed successfully.`,

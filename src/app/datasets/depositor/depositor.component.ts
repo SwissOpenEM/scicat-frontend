@@ -75,7 +75,7 @@ export class DepositorComponent implements OnInit, OnDestroy {
 
   // OneDep deposition properties
   depID: string | null = null;
-  jwtToken: string = "";
+  refreshToken: string = "";
 
 
   constructor(
@@ -155,7 +155,7 @@ export class DepositorComponent implements OnInit, OnDestroy {
  }
 
  async onChangeScientificMetadata() {
-  const selectedMethod = "https://raw.githubusercontent.com/osc-em/OSCEM_Schemas/refs/heads/main/project/spa/jsonschema/oscem_schemas_spa.schema.json";
+  const selectedMethod = "https://w3id.org/oscem-schemas/latest/spa/jsonschema/oscem_schemas_spa.schema.json";
 
   try {
     // Fetch the JSON file
@@ -222,9 +222,9 @@ export class DepositorComponent implements OnInit, OnDestroy {
   /**
    * Send metadata to OneDep deposition
    * Similar to the pattern in onedep.component.ts lines 664-673
-   * Creates FormData with jwtToken and scientificMetadata (no file needed)
+   * Creates FormData with refreshToken and scientificMetadata (no file needed)
    */
-  sendMetadataToOneDep(depID: string, jwtToken: string) {
+  sendMetadataToOneDep(depID: string, refreshToken: string) {
     if (!this.metadata || Object.keys(this.metadata).length === 0) {
       console.error('No metadata to send');
       return;
@@ -232,7 +232,7 @@ export class DepositorComponent implements OnInit, OnDestroy {
 
     // Create FormData similar to onedep component pattern
     const formDataFile = new FormData();
-    formDataFile.append("jwtToken", jwtToken);
+    formDataFile.append("refreshToken", refreshToken);
     formDataFile.append(
       "scientificMetadata",
       JSON.stringify(this.metadata),
@@ -242,6 +242,9 @@ export class DepositorComponent implements OnInit, OnDestroy {
     // This will call the /onedep/{depID}/metadata endpoint
     this.depositor.sendMetadata(depID, formDataFile).subscribe({
       next: (response) => {
+        if (response?.refreshToken) {
+          this.refreshToken = response.refreshToken;
+        }
         console.log('Metadata sent successfully:', response);
         // You can dispatch a success action or show a message here
       },
@@ -257,14 +260,14 @@ export class DepositorComponent implements OnInit, OnDestroy {
    * This dispatches an action that will be handled by the effects
    * Note: This will create a new deposition entry via submitDeposition action
    */
-  sendMetadataViaStore(jwtToken: string) {
+  sendMetadataViaStore(refreshToken: string) {
     if (!this.metadata || Object.keys(this.metadata).length === 0) {
       console.error('No metadata to send');
       return;
     }
 
     const formDataFile = new FormData();
-    formDataFile.append("jwtToken", jwtToken);
+    formDataFile.append("refreshToken", refreshToken);
     formDataFile.append(
       "scientificMetadata",
       JSON.stringify(this.metadata),
@@ -278,7 +281,7 @@ export class DepositorComponent implements OnInit, OnDestroy {
           orcidIds: [],
           country: '',
           method: '',
-          jwtToken: jwtToken,
+          refreshToken: refreshToken,
         },
         files: [{ form: formDataFile, fileType: EmFile.Metadata }],
       }),

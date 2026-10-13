@@ -36,7 +36,7 @@ export interface OneDepUserInfo {
   orcidIds: string[];
   country: string;
   method: string;
-  jwtToken: string;
+  refreshToken: string;
   password?: string;
   coordinates:boolean;
 }
