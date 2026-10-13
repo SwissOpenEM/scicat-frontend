@@ -117,7 +117,7 @@ Cypress.Commands.add("createDataset", (overwrites = {}) => {
 
         cy.request({
           method: "POST",
-          url: lbBaseUrl + "/datasets",
+          url: lbBaseUrlV4 + "/datasets",
           headers: getHeader(token),
           body: dataset,
         }).then((response) => {
@@ -145,8 +145,8 @@ Cypress.Commands.add("createDataset", (overwrites = {}) => {
 
         cy.request({
           method: "POST",
-          url: lbBaseUrl + "/datasets",
-          headers,
+          url: lbBaseUrlV4 + "/datasets",
+          headers: getHeader(token),
           body: dataset,
         });
       }
@@ -271,7 +271,7 @@ Cypress.Commands.add("removeDatasets", () => {
     cy.request({
       method: "GET",
       url:
-        lbBaseUrl +
+        lbBaseUrlV4 +
         "/datasets?filter=" +
         encodeURIComponent(JSON.stringify(filter)),
       headers: getHeader(token),
@@ -283,12 +283,8 @@ Cypress.Commands.add("removeDatasets", () => {
       datasets.forEach((dataset) => {
         cy.request({
           method: "DELETE",
-          url: lbBaseUrl + "/datasets/" + encodeURIComponent(dataset.pid),
-          headers: {
-            Authorization: token,
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
+          url: lbBaseUrlV4 + "/datasets/" + encodeURIComponent(dataset.pid),
+          headers: getHeader(token),
         });
       });
     });
@@ -433,68 +429,19 @@ Cypress.Commands.add("removeJobs", () => {
   });
 });
 
-Cypress.Commands.add("initializeElasticSearch", (index) => {
-  cy.login(Cypress.env("username"), Cypress.env("password"));
-  cy.getToken().then((token) => {
-    cy.request({
-      method: "POST",
-      url: lbBaseUrl + "/elastic-search" + "/create-index" + "?index=" + index,
-      headers: getHeader(token),
-    }).then(() => {
-      cy.request({
-        method: "POST",
-        url:
-          lbBaseUrl + "/elastic-search" + "/sync-database" + "?index=" + index,
-        headers: getHeader(token),
-      });
-    });
-  });
-});
-
-Cypress.Commands.add("createDatasetForElasticSearch", (datasetName) => {
-  cy.getCookie("user").then((userCookie) => {
-    const user = JSON.parse(decodeURIComponent(userCookie.value));
-
-    cy.getToken().then((token) => {
-      const dataset = testData.rawDataset;
-      dataset.datasetName = datasetName;
-      cy.log("Raw Dataset 1: " + JSON.stringify(dataset, null, 2));
-      cy.log("User: " + JSON.stringify(user, null, 2));
-
-      cy.request({
-        method: "POST",
-        url: lbBaseUrl + "/datasets",
-        headers: getHeader(token),
-        body: dataset,
-      });
-    });
-  });
-});
-
-Cypress.Commands.add("removeElasticSearchIndex", (index) => {
-  cy.login(Cypress.env("username"), Cypress.env("password"));
-  cy.getToken().then((token) => {
-    cy.request({
-      method: "POST",
-      url: lbBaseUrl + "/elastic-search" + "/delete-index" + "?index=" + index,
-      headers: getHeader(token),
-    });
-  });
-});
-
 Cypress.Commands.add("uploadDatasetAttachments", (number = 1, wait = 500) => {
   cy.get(".mat-mdc-tab-link").contains("Attachments").click();
 
   for (let i = 0; i < number; i++) {
-    const randomContent = `data:image/png;base64,${Cypress._.times(100, () =>
-      Math.floor(Math.random()).toString(16),
-    ).join("")}`;
+    // const randomContent = `data:image/png;base64,${Cypress._.times(100, () =>
+    //   Math.floor(Math.random()).toString(16),
+    // ).join("")}`;
 
     const fileName = `random-image-${Date.now()}-${i}.png`;
 
     cy.get(".dropzone").selectFile(
       {
-        contents: Cypress.Buffer.from(randomContent, "base64"),
+        contents: Cypress.Buffer.from(testData.testImage, "base64"),
         fileName: fileName,
         mimeType: "image/png",
       },
@@ -505,38 +452,4 @@ Cypress.Commands.add("uploadDatasetAttachments", (number = 1, wait = 500) => {
     );
     cy.wait(wait);
   }
-});
-
-Cypress.Commands.add("removeDatasetsForElasticSearch", (datasetName) => {
-  cy.login(Cypress.env("username"), Cypress.env("password"));
-  cy.getToken().then((token) => {
-    const filter = { where: { datasetName } };
-
-    cy.request({
-      method: "GET",
-      url:
-        lbBaseUrl +
-        "/datasets?filter=" +
-        encodeURIComponent(JSON.stringify(filter)),
-      headers: getHeader(token),
-    })
-      .its("body")
-      .as("datasets");
-
-    cy.login(
-      Cypress.env("secondaryUsername"),
-      Cypress.env("secondaryPassword"),
-    );
-    cy.getToken().then((token) => {
-      cy.get("@datasets").then((datasets) => {
-        datasets.forEach((dataset) => {
-          cy.request({
-            method: "DELETE",
-            url: lbBaseUrl + "/datasets/" + encodeURIComponent(dataset.pid),
-            headers: getHeader(token),
-          });
-        });
-      });
-    });
-  });
 });

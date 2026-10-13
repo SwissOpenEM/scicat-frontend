@@ -107,6 +107,25 @@ export interface DatasetStatusBannerConfig {
   rules?: DatasetStatusBannerRule[];
 }
 
+// Values accepted by the `include` parameter of the v4 single dataset endpoint.
+export const DATASET_INCLUDE_FIELDS = [
+  "instruments",
+  "proposals",
+  "origdatablocks",
+  "datablocks",
+  "attachments",
+  "samples",
+  "all",
+] as const;
+
+export type DatasetIncludeField = (typeof DATASET_INCLUDE_FIELDS)[number];
+
+// `include` values requested when the dataset details tab is opened. The other
+// tabs request fixed includes (see dataset-details-dashboard.component.ts).
+export interface DatasetDetailsTabsInclude {
+  details?: DatasetIncludeField[];
+}
+
 export interface AppConfigInterface {
   allowConfigOverrides?: boolean;
   addScientificMetadataKeysAsColumn?: boolean;
@@ -119,6 +138,7 @@ export interface AppConfigInterface {
   datasetReduceEnabled: boolean;
   datasetRelationshipsEnabled: boolean;
   datasetDetailsShowMissingProposalId: boolean;
+  datasetDetailsTabsInclude?: DatasetDetailsTabsInclude;
   datasetActionsEnabled: boolean;
   datasetActions: ActionConfig[];
   datafilesActionsEnabled: boolean;
@@ -209,6 +229,7 @@ export interface AppConfigInterface {
   aboutSettings?: AboutSettings;
   batchActionsEnabled?: boolean;
   batchActions?: ActionConfig[];
+  realTimeUpdatesEnabled?: boolean;
   depositorURL: string;
   datasetOneDepIntegration?: boolean;
 }
@@ -355,6 +376,14 @@ export class AppConfigService {
         htmlContent:
           'Here goes your SciCat About page!!<br>For more information, please read the documentation available on the <a href="https://scicatproject.org">SciCat Website</a>',
       };
+    }
+
+    if (config.datasetDetailComponent) {
+      config.datasetDetailComponent.tileRestrictedIconVisible =
+        config.datasetDetailComponent.tileRestrictedIconVisible ?? false;
+
+      config.datasetDetailComponent.tileRestrictedIconGroups = config
+        .datasetDetailComponent.tileRestrictedIconGroups ?? ["admin"];
     }
 
     applyDefaultBatchActions(config);
