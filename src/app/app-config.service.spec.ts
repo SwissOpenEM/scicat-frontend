@@ -96,6 +96,7 @@ const appConfig: AppConfigInterface = {
   datasetSelectionActions: [],
   batchActionsEnabled: true,
   batchActions: [],
+  depositorURL: "http://localhost:8888",
   defaultDatasetsListSettings: {
     columns: [
       {

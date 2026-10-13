@@ -5,16 +5,14 @@ import { ActivatedRoute, Router } from "@angular/router";
 import { Store } from "@ngrx/store";
 import { Subscription } from 'rxjs';
 
-import {
-  OutputDatasetObsoleteDto,
-  ReturnedUserDto,
-} from "@scicatproject/scicat-sdk-ts-angular";
+import { ReturnedUserDto } from "@scicatproject/scicat-sdk-ts-angular";
 
 import { selectCurrentDataset } from "state-management/selectors/datasets.selectors";
 import { selectCurrentUser } from "state-management/selectors/user.selectors";
 import { fetchDatasetAction } from "state-management/actions/datasets.actions";
 import { accessEmpiarSchema } from "state-management/actions/depositor.actions";
 import { selectEmpiarSchema } from "state-management/selectors/depositor.selectors";
+import { CurrentDataset } from "state-management/state/datasets.store";
 
 @Component({
   selector: 'app-depositor-wrapper',
@@ -28,7 +26,7 @@ import { selectEmpiarSchema } from "state-management/selectors/depositor.selecto
 })
 export class DepositorWrapperComponent implements OnInit {
   @Input() method!: 'onedep' | 'empiar'; // Allows usage in depositor page too
-  dataset!: OutputDatasetObsoleteDto;
+  dataset!: CurrentDataset;
   user!: ReturnedUserDto;
   empiarSchemaEncoded!:string | undefined;
 

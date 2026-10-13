@@ -20,10 +20,7 @@ import {
 } from "@angular/forms";
 
 import { Store } from "@ngrx/store";
-import {
-  OutputDatasetObsoleteDto,
-  ReturnedUserDto,
-} from "@scicatproject/scicat-sdk-ts-angular";
+import { ReturnedUserDto } from "@scicatproject/scicat-sdk-ts-angular";
 import { selectCurrentDataset } from "state-management/selectors/datasets.selectors";
 import { selectCurrentUser } from "state-management/selectors/user.selectors";
 import * as fromActions from "state-management/actions/depositor.actions";
@@ -45,6 +42,7 @@ import {
 } from "state-management/selectors/depositor.selectors";
 import { UploadStatus, FileUploadProgress } from "state-management/state/depositor.store";
 import { resetUploadProgress } from "state-management/actions/depositor.actions";
+import { CurrentDataset } from "state-management/state/datasets.store";
 
 @Component({
   selector: "app-onedep",
@@ -53,7 +51,7 @@ import { resetUploadProgress } from "state-management/actions/depositor.actions"
   standalone: false,
 })
 export class OneDepComponent implements OnChanges, OnDestroy {
-  @Input() dataset: OutputDatasetObsoleteDto | undefined;
+  @Input() dataset: CurrentDataset | undefined;
   @Input() user: ReturnedUserDto | undefined;
   @Input() showFirstCard = true;
   private subscriptions: Subscription[] = [];

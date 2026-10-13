@@ -8,10 +8,7 @@ import {
 import { AppConfigService, AppConfigInterface } from "app-config.service";
 import { JsonSchema } from "@jsonforms/core";
 import { Store } from "@ngrx/store";
-import {
-  OutputDatasetObsoleteDto,
-  ReturnedUserDto,
-} from "@scicatproject/scicat-sdk-ts-angular";
+import { ReturnedUserDto } from "@scicatproject/scicat-sdk-ts-angular";
 import { selectCurrentDataset } from "state-management/selectors/datasets.selectors";
 // import {
 //   selectIsAdmin,
@@ -30,6 +27,7 @@ import { IngestorMetadataEditorHelper } from "../../ingestor/ingestor-metadata-e
 import { EmFile } from "./onedep/types/methods.enum";
 import { Subscription } from "rxjs";
 import { Depositor } from "../../shared/sdk/apis/depositor.service";
+import { CurrentDataset } from "state-management/state/datasets.store";
 
 interface DepositionRepository {
   value: string;
@@ -52,7 +50,7 @@ export class DepositorComponent implements OnInit, OnDestroy {
     { value: "empiar", viewValue: "EMPIAR" },
   ];
   depositionRepository: FormControl;
-  dataset: OutputDatasetObsoleteDto | undefined;
+  dataset: CurrentDataset | undefined;
   user: ReturnedUserDto | undefined;
 
   

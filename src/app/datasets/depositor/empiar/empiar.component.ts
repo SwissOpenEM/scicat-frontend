@@ -4,9 +4,9 @@ import { angularMaterialRenderers } from "@jsonforms/angular-material";
 import { AppConfigService, AppConfigInterface } from "app-config.service";
 import { Store, select } from "@ngrx/store";
 import {
-  OutputDatasetObsoleteDto,
   ReturnedUserDto,
 } from "@scicatproject/scicat-sdk-ts-angular";
+import { CurrentDataset } from "state-management/state/datasets.store";
 import { selectCurrentDataset } from "state-management/selectors/datasets.selectors";
 import { selectCurrentUser } from "state-management/selectors/user.selectors";
 import { selectEmpiarSchema } from "state-management/selectors/depositor.selectors";
@@ -32,7 +32,7 @@ import { customSemiEnumControlRenderer } from "./customRenderers/imageSetRendere
   standalone: false,
 })
 export class EmpiarComponent implements OnChanges, OnDestroy {
-  @Input() dataset!: OutputDatasetObsoleteDto | undefined;
+  @Input() dataset!: CurrentDataset | undefined;
   @Input() user!: ReturnedUserDto | undefined;
   @Input() empiarSchemaEncoded!: string; 
   @Input() showFirstCard = true;

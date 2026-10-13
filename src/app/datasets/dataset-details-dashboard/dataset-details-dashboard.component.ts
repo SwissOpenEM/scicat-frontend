@@ -52,6 +52,7 @@ interface TabContext {
   isAdmin: boolean;
   isInOwnerGroup: boolean;
   hasAccessToLogbook: boolean;
+  hasOpenEMKeyword: boolean;
   isPublished: boolean;
   config: ReturnType<AppConfigService["getConfig"]>;
 }
@@ -203,20 +204,7 @@ export class DatasetDetailsDashboardComponent
     fragment: "ignored",
     paths: "exact",
   };
-
-  fetchDataActions: { [tab: string]: { action: any; loaded: boolean } } = {
-    [TAB.details]: { action: fetchDatasetAction, loaded: false },
-    [TAB.jsonScientificMetadata]: { action: fetchDatasetAction, loaded: false },
-    [TAB.relatedDatasets]: {
-      action: fetchRelatedDatasetsAction,
-      loaded: false,
-    },
-    [TAB.datafiles]: { action: fetchOrigDatablocksAction, loaded: false },
-    [TAB.logbook]: { action: fetchDatasetLogbookAction, loaded: false },
-    [TAB.attachments]: { action: fetchAttachmentsAction, loaded: false },
-    [TAB.admin]: { action: fetchDatablocksAction, loaded: false },
-    [TAB.depositor]: { action: fetchDatasetAction, loaded: false },
-  };
+  
   userProfile$ = this.store.select(selectProfile);
   isAdmin$ = this.store.select(selectIsAdmin);
   accessGroups$: Observable<string[]> = this.userProfile$.pipe(
@@ -313,7 +301,7 @@ export class DatasetDetailsDashboardComponent
               hasAccessToLogbook:
                 isInOwnerGroup ||
                 (dataset.accessGroups ?? []).some((g) => groups.includes(g)),
-              hasOpenEMKeyword = this.dataset.keywords.some(
+              hasOpenEMKeyword: this.dataset.keywords.some(
                 (k) => k.toLowerCase() === "openem",
               ),
               config: this.appConfig,
