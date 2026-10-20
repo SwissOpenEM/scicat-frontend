@@ -147,6 +147,15 @@ const TAB_DEFINITIONS: {
     icon: "settings",
     isEnabled: (c) => c.isLoggedIn && c.isAdmin,
   },
+  {
+  location: "./depositor",
+  label: TAB.depositor,
+  icon: "cloud_upload",
+  isEnabled: (c) =>
+    c.config.datasetOneDepIntegration &&
+    c.isLoggedIn &&
+    c.hasOpenEMKeyword,
+},
 ];
 
 // Used when `datasetDetailsTabsInclude.details` is not configured.
